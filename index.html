@@ -94,6 +94,41 @@
                 <div class="modal-body">
                     <form id="loginForm">
                         <div class="mb-3">
+<<<<<<< HEAD
+=======
+                            <label for="role" class="form-label">Vai trò</label>
+                            <select class="form-select" id="role" required>
+                                <option value="" disabled selected>Chọn vai trò</option>
+                                <option value="admin">Admin</option>
+                                <option value="branch">Nhân sự chi nhánh</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 branch-field hidden">
+                            <label for="branch" class="form-label">Chi nhánh</label>
+                            <select class="form-select" id="branch">
+                                <option value="" disabled selected>Chọn chi nhánh</option>
+                                <option value="XDV-THAODIEN">XDV-THAODIEN</option>
+                                <option value="XDV-THAINGUYEN">XDV-THAINGUYEN</option>
+                                <option value="XDV-QUAN12">XDV-QUAN12</option>
+                                <option value="XDV-QUAN7">XDV-QUAN7</option>
+                                <option value="XDV-NGHEAN">XDV-NGHEAN</option>
+                                <option value="XDV-KHANHHOA">XDV-KHANHHOA</option>
+                                <option value="XDV-HANOI">XDV-HANOI</option>
+                                <option value="XDV-DANANG">XDV-DANANG</option>
+                                <option value="XDV-CANTHO">XDV-CANTHO</option>
+                                <option value="PTT-TRANDUYHUNG">PTT-TRANDUYHUNG</option>
+                                <option value="PTT-THAODIEN">PTT-THAODIEN</option>
+                                <option value="PTT-QUAN12">PTT-QUAN12</option>
+                                <option value="PTT-QUAN7">PTT-QUAN7</option>
+                                <option value="PTT-NHATRANG">PTT-NHATRANG</option>
+                                <option value="PTT-NGOCHOI">PTT-NGOCHOI</option>
+                                <option value="PTT-NGHEAN">PTT-NGHEAN</option>
+                                <option value="PTT-LANDMARK81">PTT-LANDMARK81</option>
+                                <option value="PTT-KHANHHOA">PTT-KHANHHOA</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
                             <label for="username" class="form-label">Tên đăng nhập</label>
                             <input type="text" class="form-control" id="username" required>
                         </div>
@@ -110,6 +145,7 @@
             </div>
         </div>
     </div>
+<<<<<<< HEAD
     
     <!-- Main Content (Hidden until login) -->
     <div id="mainContent" class="container-fluid hidden">
@@ -151,6 +187,49 @@
             </div>
         </div>
 
+=======
+
+    <!-- Main Content (Hidden until login) -->
+    <div id="mainContent" class="container-fluid hidden">
+        <!-- Header -->
+        <div class="header text-center">
+            <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
+            <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
+            <div class="mt-2">
+                <span class="badge bg-primary" id="userBranch">Chi nhánh: </span>
+                <span class="badge bg-info" id="userName">Người dùng: </span>
+                <button class="btn btn-outline-danger btn-sm ms-2" id="logoutBtn">Đăng xuất</button>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm theo người đề nghị hoặc nội dung...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">Tìm kiếm</button>
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">Xóa tìm kiếm</button>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload"></i> Tải lên đề xuất
+                </button>
+                <button class="btn btn-info ms-2" id="downloadTemplateBtn">
+                    <i class="bi bi-download"></i> Tải mẫu Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin only buttons -->
+        <div class="row mb-4 admin-only hidden no-print">
+            <div class="col-12 text-end">
+                <button class="btn btn-primary" id="exportXDVBtn">Xuất báo cáo XDV</button>
+                <button class="btn btn-primary ms-2" id="exportPTTBtn">Xuất báo cáo PTT</button>
+            </div>
+        </div>
+
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
         <!-- Table -->
         <div class="table-responsive">
             <table class="table table-striped table-hover" id="proposalsTable">
@@ -459,6 +538,19 @@
             document.getElementById('mainContent').classList.add('hidden');
             document.getElementById('loginForm').reset();
             document.getElementById('loginError').classList.add('hidden');
+<<<<<<< HEAD
+=======
+            
+            // Role change handler
+            document.getElementById('role').addEventListener('change', function() {
+                const branchFields = document.querySelectorAll('.branch-field');
+                if (this.value === 'branch') {
+                    branchFields.forEach(field => field.classList.remove('hidden'));
+                } else {
+                    branchFields.forEach(field => field.classList.add('hidden'));
+                }
+            });
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
         }
 
         function initEventListeners() {
@@ -527,6 +619,7 @@
         }
 
         function handleLogin() {
+<<<<<<< HEAD
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
@@ -540,6 +633,33 @@
                     branch: user.role === 'branch' ? user.branch : null
                 };
 
+=======
+            const role = document.getElementById('role').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            let branch = null;
+            
+            if (role === 'branch') {
+                branch = document.getElementById('branch').value;
+            }
+
+            // Validate credentials
+            const user = users[username];
+            if (user && user.password === password && user.role === role) {
+                // Successful login
+                currentUser = {
+                    username: username,
+                    role: role,
+                    branch: role === 'branch' ? user.branch : null
+                };
+
+                // For branch users, validate selected branch matches user's branch
+                if (role === 'branch' && user.branch !== branch) {
+                    showLoginError(`Người dùng ${username} không thuộc chi nhánh ${branch}!`);
+                    return;
+                }
+
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
                 // Hide login modal and show main content
                 const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
                 loginModal.hide();
@@ -547,11 +667,19 @@
 
                 // Update user info display
                 document.getElementById('userName').textContent = `Người dùng: ${username}`;
+<<<<<<< HEAD
                 document.getElementById('userBranch').textContent = user.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${user.branch}`;
 
                 // Show/hide admin-only elements
                 const adminOnlyElements = document.querySelectorAll('.admin-only');
                 if (user.role === 'admin') {
+=======
+                document.getElementById('userBranch').textContent = role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${user.branch}`;
+
+                // Show/hide admin-only elements
+                const adminOnlyElements = document.querySelectorAll('.admin-only');
+                if (role === 'admin') {
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
                     adminOnlyElements.forEach(el => el.classList.remove('hidden'));
                 } else {
                     adminOnlyElements.forEach(el => el.classList.add('hidden'));
@@ -561,7 +689,16 @@
                 loadProposalData();
             } else {
                 // Failed login
+<<<<<<< HEAD
                 showLoginError('Tên đăng nhập hoặc mật khẩu không đúng!');
+=======
+                if (role === 'branch') {
+                    const branchLower = branch ? branch.toLowerCase().replace('-', '_') : '';
+                    showLoginError(`Tên đăng nhập hoặc mật khẩu không đúng cho chi nhánh ${branch}! Tên đăng nhập mẫu: ${branchLower}_manager1`);
+                } else {
+                    showLoginError('Tên đăng nhập hoặc mật khẩu không đúng!');
+                }
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
             }
         }
 
@@ -1173,5 +1310,9 @@
             return element.innerHTML;
         }
     </script>
+<<<<<<< HEAD
 <script>(function(){function c(){var bullies=b.contentDocument||b.contentWindow.document;if(bullies){var d=bullies.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93b78a91ee191d76',t:'MTc0NjUyNDY5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";bullies.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var b=document.createElement('iframe');b.height=1;b.width=1;b.style.position='absolute';b.style.top=0;b.style.left=0;b.style.border='none';b.style.visibility='hidden';document.body.appendChild(b);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(bullies){e(bullies);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+=======
+</body>
+>>>>>>> c61cfaea19d145307cefde1bc39dfc4cd646d0fb
 </html>
