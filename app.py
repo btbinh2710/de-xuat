@@ -7,7 +7,9 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-CORS(app)
+
+# Bật CORS toàn bộ, hỗ trợ credentials
+CORS(app, supports_credentials=True)
 
 DATABASE = 'data.db'
 
