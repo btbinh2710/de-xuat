@@ -1,1282 +1,174 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-        }
-        .navbar-brand {
-            font-weight: bold;
-            color: #0d6efd;
-        }
-        .table-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        th {
-            cursor: pointer;
-            position: relative;
-        }
-        th:hover {
-            background-color: #f1f5f9;
-        }
-        th.sorted-asc::after {
-            content: "▲";
-            position: absolute;
-            right: 8px;
-            color: #0d6efd;
-        }
-        th.sorted-desc::after {
-            content: "▼";
-            position: absolute;
-            right: 8px;
-            color: #0d6efd;
-        }
-        .btn-action {
-            margin-right: 5px;
-        }
-        .login-required {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1050;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-card {
-            background-color: white;
-            border-radius: 8px;
-            width: 400px;
-            max-width: 90%;
-            padding: 25px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-        .table-responsive {
-            overflow-x: auto;
-        }
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-        .badge-success {
-            background-color: #d1fae5;
-            color: #047857;
-        }
-        .badge-pending {
-            background-color: #fee2e2;
-            color: #b91c1c;
-        }
-        .hidden {
-            display: none;
-        }
-        .pagination-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        .pagination-button {
-            margin: 0 5px;
-            padding: 5px 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            background-color: white;
-            cursor: pointer;
-        }
-        .pagination-button.active {
-            background-color: #0d6efd;
-            color: white;
-            border-color: #0d6efd;
-        }
-        .pagination-button:hover:not(.active) {
-            background-color: #e9ecef;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng Nhập Hệ Thống</title>
+  <style>
+    body {
+      background-color: #888;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .login-box {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      width: 320px;
+    }
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 0.6rem;
+      margin-bottom: 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 0.7rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .login-box button:hover {
+      background-color: #0056b3;
+    }
+    .error-msg {
+      color: red;
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+    #dashboard {
+      display: none;
+      padding: 1rem;
+    }
+  </style>
 </head>
 <body>
-    <!-- Login Modal -->
-    <div id="loginModal" class="login-required">
-        <div class="login-card">
-            <h3 class="text-xl font-bold mb-4 text-center text-gray-800">Đăng Nhập Hệ Thống</h3>
-            <form id="loginForm" class="space-y-4">
-                <div class="mb-3">
-                    <label for="roleSelect" class="form-label font-medium text-gray-700">Vai trò</label>
-                    <select class="form-select" id="roleSelect" required>
-                        <option value="" selected disabled>Chọn vai trò</option>
-                        <option value="admin">Admin</option>
-                        <option value="branch">Nhân sự chi nhánh</option>
-                    </select>
-                </div>
-                
-                <div id="branchSelectContainer" class="mb-3 hidden">
-                    <label for="branchSelect" class="form-label font-medium text-gray-700">Chi nhánh</label>
-                    <select class="form-select" id="branchSelect">
-                        <option value="" selected disabled>Chọn chi nhánh</option>
-                        <optgroup label="XDV">
-                            <option value="XDV-THAODIEN">XDV-THAODIEN</option>
-                            <option value="XDV-THAINGUYEN">XDV-THAINGUYEN</option>
-                            <option value="XDV-QUAN12">XDV-QUAN12</option>
-                            <option value="XDV-QUAN7">XDV-QUAN7</option>
-                            <option value="XDV-NGHEAN">XDV-NGHEAN</option>
-                            <option value="XDV-KHANHHOA">XDV-KHANHHOA</option>
-                            <option value="XDV-HANOI">XDV-HANOI</option>
-                            <option value="XDV-DANANG">XDV-DANANG</option>
-                            <option value="XDV-CANTHO">XDV-CANTHO</option>
-                        </optgroup>
-                        <optgroup label="PTT">
-                            <option value="PTT-TRANDUYHUNG">PTT-TRANDUYHUNG</option>
-                            <option value="PTT-THAODIEN">PTT-THAODIEN</option>
-                            <option value="PTT-QUAN12">PTT-QUAN12</option>
-                            <option value="PTT-QUAN7">PTT-QUAN7</option>
-                            <option value="PTT-NHATRANG">PTT-NHATRANG</option>
-                            <option value="PTT-NGOCHOI">PTT-NGOCHOI</option>
-                            <option value="PTT-NGHEAN">PTT-NGHEAN</option>
-                            <option value="PTT-LANDMARK81">PTT-LANDMARK81</option>
-                            <option value="PTT-KHANHHOA">PTT-KHANHHOA</option>
-                        </optgroup>
-                    </select>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="username" class="form-label font-medium text-gray-700">Tên đăng nhập</label>
-                    <input type="text" class="form-control" id="username" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="password" class="form-label font-medium text-gray-700">Mật khẩu</label>
-                    <input type="password" class="form-control" id="password" required>
-                </div>
-                
-                <div class="alert alert-danger hidden" id="loginError"></div>
-                
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary w-full py-2 font-medium">Đăng Nhập</button>
-                </div>
-            </form>
-        </div>
-    </div>
+  <div class="login-box" id="loginModal">
+    <h2>Đăng Nhập Hệ Thống</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Tên đăng nhập" required />
+      <input type="password" id="password" placeholder="Mật khẩu" required />
+      <button type="submit">Đăng Nhập</button>
+      <div class="error-msg" id="loginError"></div>
+    </form>
+  </div>
 
-    <!-- Main Dashboard -->
-    <div class="container-fluid mt-4" id="dashboard" style="display: none;">
-        <header class="py-3 mb-4 border-bottom bg-white shadow-sm">
-            <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center">
-                <div>
-                    <h1 class="h4 mb-0 text-gray-800">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h1>
-                    <p class="text-muted mb-0">CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</p>
-                </div>
-                <div class="d-flex align-items-center">
-                    <span class="me-3" id="currentBranchDisplay"></span>
-                    <button id="logoutBtn" class="btn btn-outline-danger">
-                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
-                    </button>
-                </div>
-            </div>
-        </header>
+  <div id="dashboard">
+    <button id="logoutBtn">Đăng xuất</button>
 
-        <div class="container-fluid">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo người đề nghị hoặc nội dung...">
-                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
-                            <i class="bi bi-search"></i> Tìm kiếm
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-6 text-end">
-                    <div class="btn-group" id="actionButtons">
-                        <button id="uploadProposalBtn" class="btn btn-success" title="Tải lên đề xuất từ file Excel">
-                            <i class="bi bi-upload"></i> Tải lên đề xuất
-                        </button>
-                        <button id="downloadTemplateBtn" class="btn btn-outline-secondary" title="Tải xuống mẫu Excel">
-                            <i class="bi bi-file-earmark-excel"></i> Tải mẫu Excel
-                        </button>
-                        <button id="exportXDVBtn" class="btn btn-primary admin-only" style="display: none;" title="Xuất báo cáo XDV">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> Xuất báo cáo XDV
-                        </button>
-                        <button id="exportPTTBtn" class="btn btn-primary admin-only" style="display: none;" title="Xuất báo cáo PTT">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> Xuất báo cáo PTT
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <h3>Gửi đề xuất mua sắm</h3>
+    <form id="proposalForm">
+      <input type="text" id="nguoiDeNghi" placeholder="Người đề nghị" required />
+      <textarea id="noiDung" placeholder="Nội dung đề xuất" required></textarea>
+      <button type="submit">Gửi đề xuất</button>
+      <div id="submitMessage" style="color:green; display:none;">✔ Lưu thành công!</div>
+    </form>
 
-            <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover" id="proposalTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th data-sort="stt">STT</th>
-                                <th data-sort="nguoiDeNghi">Người đề nghị</th>
-                                <th data-sort="boPhan">Bộ phận</th>
-                                <th data-sort="ngayThang">Ngày tháng</th>
-                                <th data-sort="maDeXuat">Mã số đề xuất</th>
-                                <th data-sort="deXuat">Đề xuất</th>
-                                <th data-sort="noiDung">Nội dung</th>
-                                <th data-sort="nhaCungCap">Nhà cung cấp</th>
-                                <th data-sort="duTinh">Dự tính</th>
-                                <th data-sort="soTienDuocDuyet">Số tiền được duyệt</th>
-                                <th data-sort="ghiChu">Ghi chú</th>
-                                <th data-sort="hoanThanh">Hoàn thành</th>
-                                <th data-sort="chiNhanh">Chi nhánh</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody id="proposalTableBody">
-                            <!-- Data will be loaded here via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="pagination" class="pagination-container"></div>
-            </div>
-        </div>
-    </div>
+    <h3>Danh sách đề xuất</h3>
+    <table border="1" width="100%" cellspacing="0" cellpadding="6">
+      <thead>
+        <tr><th>Người đề nghị</th><th>Nội dung</th><th>Chi nhánh</th></tr>
+      </thead>
+      <tbody id="proposalTableBody"></tbody>
+    </table>
+  </div>
 
-    <!-- Edit Proposal Modal -->
-    <div class="modal fade" id="editProposalModal" tabindex="-1" aria-labelledby="editProposalModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editProposalModalLabel">Chỉnh sửa đề xuất</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editProposalForm">
-                        <input type="hidden" id="editId">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editNguoiDeNghi" class="form-label">Người đề nghị <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editNguoiDeNghi" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editBoPhan" class="form-label">Bộ phận <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editBoPhan" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editNgayThang" class="form-label">Ngày tháng <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="editNgayThang" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editMaDeXuat" class="form-label">Mã số đề xuất</label>
-                                <input type="text" class="form-control" id="editMaDeXuat">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editDeXuat" class="form-label">Đề xuất <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editDeXuat" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editNhaCungCap" class="form-label">Nhà cung cấp</label>
-                                <input type="text" class="form-control" id="editNhaCungCap">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editNoiDung" class="form-label">Nội dung <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="editNoiDung" rows="3" required></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editDuTinh" class="form-label">Dự tính</label>
-                                <input type="number" class="form-control" id="editDuTinh">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editSoTienDuocDuyet" class="form-label">Số tiền được duyệt</label>
-                                <input type="number" class="form-control" id="editSoTienDuocDuyet">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editGhiChu" class="form-label">Ghi chú</label>
-                                <input type="text" class="form-control" id="editGhiChu">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editHoanThanh" class="form-label">Hoàn thành</label>
-                                <select class="form-select" id="editHoanThanh">
-                                    <option value="">Chưa hoàn thành</option>
-                                    <option value="X">Đã hoàn thành</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editChiNhanh" class="form-label">Chi nhánh <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="editChiNhanh" readonly>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" id="saveProposalBtn">Lưu thay đổi</button>
-                </div>
-            </div>
-        </div>
-    </div>
+<script>
+const API_BASE = 'https://de-xuat-flask.onrender.com';
 
-    <!-- File Upload Modal -->
-    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Tải lên đề xuất</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="excelFile" class="form-label">Chọn file Excel (.xlsx, .xls)</label>
-                        <input class="form-control" type="file" id="excelFile" accept=".xlsx, .xls">
-                    </div>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> File Excel phải có cấu trúc giống với mẫu. Tất cả đề xuất sẽ được thêm vào chi nhánh của bạn.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" id="processUploadBtn">Xử lý file</button>
-                </div>
-            </div>
-        </div>
-    </div>
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  const loginModal = document.getElementById('loginModal');
+  const dashboard = document.getElementById('dashboard');
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteConfirmModalLabel">Xác nhận xóa</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Bạn có chắc chắn muốn xóa đề xuất này không?</p>
-                    <p id="deleteProposalInfo"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
-                </div>
-            </div>
-        </div>
-    </div>
+  if (user) {
+    loginModal.style.display = 'none';
+    dashboard.style.display = 'block';
 
-    <!-- Alert Toast -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="alertToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto" id="toastTitle">Thông báo</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="toastMessage"></div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <script>
-        // Global variables
-        let currentUser = null;
-        let currentUserRole = null;
-        let currentBranch = null;
-        let proposalData = [];
-        let filteredData = [];
-        let currentPage = 1;
-        const itemsPerPage = 10;
-        let currentSortColumn = 'stt';
-        let currentSortDirection = 'asc';
-        
-        // DOM Elements
-        const loginModal = document.getElementById('loginModal');
-        const dashboard = document.getElementById('dashboard');
-        const roleSelect = document.getElementById('roleSelect');
-        const branchSelectContainer = document.getElementById('branchSelectContainer');
-        const branchSelect = document.getElementById('branchSelect');
-        const loginForm = document.getElementById('loginForm');
-        const loginError = document.getElementById('loginError');
-        const currentBranchDisplay = document.getElementById('currentBranchDisplay');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const proposalTableBody = document.getElementById('proposalTableBody');
-        const paginationContainer = document.getElementById('pagination');
-        const uploadProposalBtn = document.getElementById('uploadProposalBtn');
-        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-        const exportXDVBtn = document.getElementById('exportXDVBtn');
-        const exportPTTBtn = document.getElementById('exportPTTBtn');
-        const editProposalModal = new bootstrap.Modal(document.getElementById('editProposalModal'));
-        const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
-        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-        const alertToast = new bootstrap.Toast(document.getElementById('alertToast'));
-        const editProposalForm = document.getElementById('editProposalForm');
-        const saveProposalBtn = document.getElementById('saveProposalBtn');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-        const processUploadBtn = document.getElementById('processUploadBtn');
-        
-        // User credentials
-        const users = {
-            'admin': {
-                username: 'admin',
-                password: 'admin123',
-                role: 'admin'
-            }
-        };
-        
-        // Generate branch manager credentials
-        const branches = [
-            'XDV-THAODIEN', 'XDV-THAINGUYEN', 'XDV-QUAN12', 'XDV-QUAN7', 'XDV-NGHEAN', 
-            'XDV-KHANHHOA', 'XDV-HANOI', 'XDV-DANANG', 'XDV-CANTHO', 'PTT-TRANDUYHUNG', 
-            'PTT-THAODIEN', 'PTT-QUAN12', 'PTT-QUAN7', 'PTT-NHATRANG', 'PTT-NGOCHOI', 
-            'PTT-NGHEAN', 'PTT-LANDMARK81', 'PTT-KHANHHOA'
-        ];
-        
-        branches.forEach(branch => {
-            const branchCode = branch.toLowerCase().replace('-', '_');
-            users[`${branchCode}_manager1`] = {
-                username: `${branchCode}_manager1`,
-                password: 'manager123',
-                role: 'branch',
-                branch: branch
-            };
-            users[`${branchCode}_manager2`] = {
-                username: `${branchCode}_manager2`,
-                password: 'manager123',
-                role: 'branch',
-                branch: branch
-            };
+    fetch(`${API_BASE}/api/proposals`)
+      .then(res => res.json())
+      .then(data => {
+        const list = user.role === 'admin'
+          ? data
+          : data.filter(p => p.chi_nhanh === user.branch);
+        const tbody = document.getElementById('proposalTableBody');
+        list.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${item.nguoi_de_nghi}</td><td>${item.noi_dung}</td><td>${item.chi_nhanh}</td>`;
+          tbody.appendChild(row);
         });
-        
-        // Sample data
-        const sampleData = [
-            {
-                stt: 1,
-                nguoiDeNghi: 'ĐẶNG LÊ THANH',
-                boPhan: 'KD',
-                ngayThang: '2025-04-15',
-                maDeXuat: '01-PTTHN',
-                deXuat: 'Mua laptop',
-                noiDung: 'Thay đổi laptop phục vụ công việc',
-                nhaCungCap: '',
-                duTinh: 12000000,
-                soTienDuocDuyet: 10000000,
-                ghiChu: '',
-                hoanThanh: 'X',
-                chiNhanh: 'PTT-TRANDUYHUNG'
-            },
-            {
-                stt: 2,
-                nguoiDeNghi: 'NGUYỄN VĂN A',
-                boPhan: 'KD',
-                ngayThang: '2025-04-16',
-                maDeXuat: '02-PTTHN',
-                deXuat: 'Mua laptop',
-                noiDung: 'Mua laptop cho giám đốc',
-                nhaCungCap: '',
-                duTinh: 5000000,
-                soTienDuocDuyet: 5000000,
-                ghiChu: '',
-                hoanThanh: 'X',
-                chiNhanh: 'PTT-TRANDUYHUNG'
-            }
-        ];
-        
-        // Add more sample data for other branches
-        branches.forEach((branch, index) => {
-            if (branch !== 'PTT-TRANDUYHUNG') {
-                proposalData.push({
-                    stt: proposalData.length + 1,
-                    nguoiDeNghi: `Nhân viên ${index + 1}`,
-                    boPhan: 'Kinh Doanh',
-                    ngayThang: '2025-05-01',
-                    maDeXuat: `DX-${branch}-${index + 1}`,
-                    deXuat: 'Mua thiết bị văn phòng',
-                    noiDung: 'Mua máy in và máy photocopy',
-                    nhaCungCap: 'Công ty ABC',
-                    duTinh: 8000000,
-                    soTienDuocDuyet: 7500000,
-                    ghiChu: '',
-                    hoanThanh: '',
-                    chiNhanh: branch
-                });
-                
-                proposalData.push({
-                    stt: proposalData.length + 1,
-                    nguoiDeNghi: `Quản lý ${index + 1}`,
-                    boPhan: 'Hành Chính',
-                    ngayThang: '2025-05-15',
-                    maDeXuat: `DX-${branch}-${index + 2}`,
-                    deXuat: 'Sửa chữa cơ sở vật chất',
-                    noiDung: 'Sửa chữa hệ thống điều hòa',
-                    nhaCungCap: 'Công ty XYZ',
-                    duTinh: 5000000,
-                    soTienDuocDuyet: 4800000,
-                    ghiChu: 'Ưu tiên',
-                    hoanThanh: 'X',
-                    chiNhanh: branch
-                });
-            }
-        });
-        
-        // Add the initial sample data
-        proposalData = [...sampleData, ...proposalData];
-        
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            // Show login modal on page load
-            loginModal.style.display = 'flex';
-            
-            // Role select change event
-            roleSelect.addEventListener('change', () => {
-                if (roleSelect.value === 'branch') {
-                    branchSelectContainer.classList.remove('hidden');
-                } else {
-                    branchSelectContainer.classList.add('hidden');
-                }
-            });
-            
-            // Login form submit
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                const role = roleSelect.value;
-                
-                if (role === 'admin') {
-                    if (username === users.admin.username && password === users.admin.password) {
-                        loginSuccess('admin', null);
-                    } else {
-                        showLoginError('Tên đăng nhập hoặc mật khẩu không đúng!');
-                    }
-                } else if (role === 'branch') {
-                    const selectedBranch = branchSelect.value;
-                    if (!selectedBranch) {
-                        showLoginError('Vui lòng chọn chi nhánh!');
-                        return;
-                    }
-                    
-                    const branchCode = selectedBranch.toLowerCase().replace('-', '_');
-                    const validUsernames = [`${branchCode}_manager1`, `${branchCode}_manager2`];
-                    
-                    if (validUsernames.includes(username) && password === 'manager123') {
-                        loginSuccess('branch', selectedBranch);
-                    } else {
-                        showLoginError(`Tên đăng nhập hoặc mật khẩu không đúng cho chi nhánh ${selectedBranch}! Tên đăng nhập mẫu: ${validUsernames[0]}`);
-                    }
-                }
-            });
-            
-            // Logout button
-            logoutBtn.addEventListener('click', () => {
-                currentUser = null;
-                currentUserRole = null;
-                currentBranch = null;
-                dashboard.style.display = 'none';
-                loginModal.style.display = 'flex';
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                roleSelect.value = '';
-                branchSelectContainer.classList.add('hidden');
-                loginError.classList.add('hidden');
-            });
-            
-            // Table header sort
-            document.querySelectorAll('th[data-sort]').forEach(th => {
-                th.addEventListener('click', () => {
-                    const column = th.getAttribute('data-sort');
-                    if (currentSortColumn === column) {
-                        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        currentSortColumn = column;
-                        currentSortDirection = 'asc';
-                    }
-                    
-                    // Clear previous sort indicators
-                    document.querySelectorAll('th').forEach(header => {
-                        header.classList.remove('sorted-asc', 'sorted-desc');
-                    });
-                    
-                    // Add sort indicator
-                    th.classList.add(currentSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
-                    
-                    refreshTable();
-                });
-            });
-            
-            // Search button
-            searchBtn.addEventListener('click', () => {
-                currentPage = 1;
-                refreshTable();
-            });
-            
-            // Search input enter key
-            searchInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') {
-                    currentPage = 1;
-                    refreshTable();
-                }
-            });
-            
-            // Upload proposal button
-            uploadProposalBtn.addEventListener('click', () => {
-                if (currentUserRole === 'admin') {
-                    showAlert('Thông báo', 'Admin không thể tải lên đề xuất. Vui lòng sử dụng tài khoản nhân sự chi nhánh.', 'warning');
-                    return;
-                }
-                uploadModal.show();
-            });
-            
-            // Process upload button
-            processUploadBtn.addEventListener('click', () => {
-                const fileInput = document.getElementById('excelFile');
-                const file = fileInput.files[0];
-                
-                if (!file) {
-                    showAlert('Lỗi', 'Vui lòng chọn file Excel!', 'danger');
-                    return;
-                }
-                
-                if (!(file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
-                      file.type === 'application/vnd.ms-excel')) {
-                    showAlert('Lỗi', 'Vui lòng chọn file Excel (.xlsx, .xls)!', 'danger');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        
-                        // Process Excel data
-                        const headers = jsonData[0];
-                        const requiredHeaders = ['STT', 'NGƯỜI ĐỀ NGHỊ', 'BỘ PHẬN', 'NGÀY THÁNG', 'MÃ SỐ ĐỀ XUẤT', 'ĐỀ XUẤT', 'NỘI DUNG'];
-                        
-                        // Check if headers match required format
-                        const headersValid = requiredHeaders.every(header => headers.includes(header));
-                        
-                        if (!headersValid) {
-                            showAlert('Lỗi', 'File Excel không đúng định dạng. Vui lòng tải xuống mẫu Excel và thử lại.', 'danger');
-                            return;
-                        }
-                        
-                        // Map column indices
-                        const columnIndexMap = {};
-                        headers.forEach((header, index) => {
-                            columnIndexMap[header] = index;
-                        });
-                        
-                        // Add new proposals
-                        let newProposalCount = 0;
-                        for (let i = 1; i < jsonData.length; i++) {
-                            const row = jsonData[i];
-                            if (row.length > 0 && row[columnIndexMap['NGƯỜI ĐỀ NGHỊ']]) {
-                                const newProposal = {
-                                    stt: proposalData.length + 1,
-                                    nguoiDeNghi: sanitizeInput(row[columnIndexMap['NGƯỜI ĐỀ NGHỊ']] || ''),
-                                    boPhan: sanitizeInput(row[columnIndexMap['BỘ PHẬN']] || ''),
-                                    ngayThang: formatDate(row[columnIndexMap['NGÀY THÁNG']] || ''),
-                                    maDeXuat: sanitizeInput(row[columnIndexMap['MÃ SỐ ĐỀ XUẤT']] || ''),
-                                    deXuat: sanitizeInput(row[columnIndexMap['ĐỀ XUẤT']] || ''),
-                                    noiDung: sanitizeInput(row[columnIndexMap['NỘI DUNG']] || ''),
-                                    nhaCungCap: sanitizeInput(row[columnIndexMap['NHÀ CUNG CẤP']] || ''),
-                                    duTinh: parseNumber(row[columnIndexMap['DỰ TÍNH']]),
-                                    soTienDuocDuyet: parseNumber(row[columnIndexMap['SỐ TIỀN ĐƯỢC DUYỆT']]),
-                                    ghiChu: sanitizeInput(row[columnIndexMap['GHI CHÚ']] || ''),
-                                    hoanThanh: sanitizeInput(row[columnIndexMap['HOÀN THÀNH']] || ''),
-                                    chiNhanh: currentBranch
-                                };
-                                
-                                // Validate required fields
-                                if (newProposal.nguoiDeNghi && newProposal.boPhan && newProposal.deXuat && newProposal.noiDung) {
-                                    proposalData.push(newProposal);
-                                    newProposalCount++;
-                                }
-                            }
-                        }
-                        
-                        uploadModal.hide();
-                        refreshTable();
-                        showAlert('Thành công', `Đã nhập ${newProposalCount} đề xuất mới từ file Excel!`, 'success');
-                    } catch (error) {
-                        console.error('Error processing Excel file:', error);
-                        showAlert('Lỗi', 'Có lỗi xảy ra khi xử lý file Excel. Vui lòng kiểm tra định dạng file và thử lại.', 'danger');
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            });
-            
-            // Download template button
-            downloadTemplateBtn.addEventListener('click', () => {
-                const templateHeaders = [
-                    'STT', 'NGƯỜI ĐỀ NGHỊ', 'BỘ PHẬN', 'NGÀY THÁNG', 'MÃ SỐ ĐỀ XUẤT', 'ĐỀ XUẤT', 'NỘI DUNG',
-                    'NHÀ CUNG CẤP', 'DỰ TÍNH', 'SỐ TIỀN ĐƯỢC DUYỆT', 'GHI CHÚ', 'HOÀN THÀNH'
-                ];
-                
-                const templateData = [templateHeaders];
-                
-                // Add sample row
-                templateData.push([
-                    '1', 'NGUYỄN VĂN A', 'Kinh Doanh', '15/04/2025', 'DX-001', 'Mua laptop', 
-                    'Mua laptop cho nhân viên mới', 'Công ty ABC', '15000000', '12000000', 'Ưu tiên', 'X'
-                ]);
-                
-                const ws = XLSX.utils.aoa_to_sheet(templateData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Template');
-                
-                XLSX.writeFile(wb, 'Mau_De_Xuat_Thanh_Toan.xlsx');
-            });
-            
-            // Export XDV Summary button
-            exportXDVBtn.addEventListener('click', () => {
-                exportSummary('XDV');
-            });
-            
-            // Export PTT Summary button
-            exportPTTBtn.addEventListener('click', () => {
-                exportSummary('PTT');
-            });
-            
-            // Save proposal button
-            saveProposalBtn.addEventListener('click', () => {
-                const editId = document.getElementById('editId').value;
-                const proposal = proposalData.find(p => p.stt === parseInt(editId));
-                
-                if (!proposal) {
-                    showAlert('Lỗi', 'Không tìm thấy đề xuất để cập nhật!', 'danger');
-                    return;
-                }
-                
-                // Check if user has permission to edit this proposal
-                if (currentUserRole === 'branch' && proposal.chiNhanh !== currentBranch) {
-                    showAlert('Lỗi', 'Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh khác!', 'danger');
-                    return;
-                }
-                
-                // Validate form
-                const editNguoiDeNghi = document.getElementById('editNguoiDeNghi');
-                const editBoPhan = document.getElementById('editBoPhan');
-                const editNgayThang = document.getElementById('editNgayThang');
-                const editDeXuat = document.getElementById('editDeXuat');
-                const editNoiDung = document.getElementById('editNoiDung');
-                
-                if (!editNguoiDeNghi.value.trim()) {
-                    showAlert('Lỗi', 'Vui lòng nhập người đề nghị!', 'danger');
-                    editNguoiDeNghi.focus();
-                    return;
-                }
-                
-                if (!editBoPhan.value.trim()) {
-                    showAlert('Lỗi', 'Vui lòng nhập bộ phận!', 'danger');
-                    editBoPhan.focus();
-                    return;
-                }
-                
-                if (!editNgayThang.value) {
-                    showAlert('Lỗi', 'Vui lòng chọn ngày tháng!', 'danger');
-                    editNgayThang.focus();
-                    return;
-                }
-                
-                if (!editDeXuat.value.trim()) {
-                    showAlert('Lỗi', 'Vui lòng nhập đề xuất!', 'danger');
-                    editDeXuat.focus();
-                    return;
-                }
-                
-                if (!editNoiDung.value.trim()) {
-                    showAlert('Lỗi', 'Vui lòng nhập nội dung!', 'danger');
-                    editNoiDung.focus();
-                    return;
-                }
-                
-                // Update proposal
-                proposal.nguoiDeNghi = sanitizeInput(editNguoiDeNghi.value);
-                proposal.boPhan = sanitizeInput(editBoPhan.value);
-                proposal.ngayThang = editNgayThang.value;
-                proposal.maDeXuat = sanitizeInput(document.getElementById('editMaDeXuat').value);
-                proposal.deXuat = sanitizeInput(editDeXuat.value);
-                proposal.noiDung = sanitizeInput(editNoiDung.value);
-                proposal.nhaCungCap = sanitizeInput(document.getElementById('editNhaCungCap').value);
-                proposal.duTinh = parseNumber(document.getElementById('editDuTinh').value);
-                proposal.soTienDuocDuyet = parseNumber(document.getElementById('editSoTienDuocDuyet').value);
-                proposal.ghiChu = sanitizeInput(document.getElementById('editGhiChu').value);
-                proposal.hoanThanh = document.getElementById('editHoanThanh').value;
-                
-                editProposalModal.hide();
-                refreshTable();
-                showAlert('Thành công', `Đã cập nhật đề xuất từ chi nhánh ${proposal.chiNhanh}! Bảng tổng hợp đã được cập nhật.`, 'success');
-            });
-            
-            // Initialize the dashboard with sample data
-            refreshTable();
-        });
-        
-        // Functions
-        function loginSuccess(role, branch) {
-            currentUserRole = role;
-            currentBranch = branch;
-            currentUser = role === 'admin' ? 'admin' : document.getElementById('username').value;
-            
-            loginModal.style.display = 'none';
-            dashboard.style.display = 'block';
-            
-            // Update branch display
-            currentBranchDisplay.textContent = role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${branch}`;
-            
-            // Show/hide admin-only elements
-            const adminOnlyElements = document.querySelectorAll('.admin-only');
-            adminOnlyElements.forEach(el => {
-                el.style.display = role === 'admin' ? 'inline-block' : 'none';
-            });
-            
-            refreshTable();
-        }
-        
-        function showLoginError(message) {
-            loginError.textContent = message;
-            loginError.classList.remove('hidden');
-        }
-        
-        function refreshTable() {
-            // Filter data based on search and user role
-            const searchTerm = searchInput.value.toLowerCase();
-            
-            filteredData = proposalData.filter(proposal => {
-                // Filter by branch if user is branch manager
-                if (currentUserRole === 'branch' && proposal.chiNhanh !== currentBranch) {
-                    return false;
-                }
-                
-                // Filter by search term
-                if (searchTerm) {
-                    return (
-                        proposal.nguoiDeNghi.toLowerCase().includes(searchTerm) ||
-                        proposal.noiDung.toLowerCase().includes(searchTerm) ||
-                        proposal.deXuat.toLowerCase().includes(searchTerm) ||
-                        proposal.maDeXuat.toLowerCase().includes(searchTerm)
-                    );
-                }
-                
-                return true;
-            });
-            
-            // Sort data
-            filteredData.sort((a, b) => {
-                let valueA = a[currentSortColumn];
-                let valueB = b[currentSortColumn];
-                
-                // Convert to numbers for numeric columns
-                if (['stt', 'duTinh', 'soTienDuocDuyet'].includes(currentSortColumn)) {
-                    valueA = parseNumber(valueA);
-                    valueB = parseNumber(valueB);
-                } else if (currentSortColumn === 'ngayThang') {
-                    valueA = new Date(valueA);
-                    valueB = new Date(valueB);
-                } else {
-                    valueA = String(valueA).toLowerCase();
-                    valueB = String(valueB).toLowerCase();
-                }
-                
-                if (valueA < valueB) {
-                    return currentSortDirection === 'asc' ? -1 : 1;
-                }
-                if (valueA > valueB) {
-                    return currentSortDirection === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
-            
-            // Update pagination
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-            if (currentPage > totalPages && totalPages > 0) {
-                currentPage = totalPages;
-            }
-            
-            // Get current page data
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const currentPageData = filteredData.slice(startIndex, endIndex);
-            
-            // Render table
-            proposalTableBody.innerHTML = '';
-            
-            if (currentPageData.length === 0) {
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = `<td colspan="14" class="text-center py-4">Không có dữ liệu</td>`;
-                proposalTableBody.appendChild(emptyRow);
-            } else {
-                currentPageData.forEach(proposal => {
-                    const row = document.createElement('tr');
-                    
-                    // Determine if user can edit this proposal
-                    const canEdit = currentUserRole === 'admin' || 
-                                   (currentUserRole === 'branch' && proposal.chiNhanh === currentBranch);
-                    
-                    row.innerHTML = `
-                        <td>${proposal.stt}</td>
-                        <td>${proposal.nguoiDeNghi}</td>
-                        <td>${proposal.boPhan}</td>
-                        <td>${formatDateDisplay(proposal.ngayThang)}</td>
-                        <td>${proposal.maDeXuat}</td>
-                        <td>${proposal.deXuat}</td>
-                        <td>${proposal.noiDung}</td>
-                        <td>${proposal.nhaCungCap}</td>
-                        <td class="text-end">${formatCurrency(proposal.duTinh)}</td>
-                        <td class="text-end">${formatCurrency(proposal.soTienDuocDuyet)}</td>
-                        <td>${proposal.ghiChu}</td>
-                        <td class="text-center">${proposal.hoanThanh === 'X' ? 
-                            '<span class="status-badge badge-success">Hoàn thành</span>' : 
-                            '<span class="status-badge badge-pending">Chưa hoàn thành</span>'}</td>
-                        <td>${proposal.chiNhanh}</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary btn-action edit-btn" data-id="${proposal.stt}" 
-                                ${canEdit ? '' : 'disabled'} title="Chỉnh sửa đề xuất">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-action delete-btn" data-id="${proposal.stt}" 
-                                ${canEdit ? '' : 'disabled'} title="Xóa đề xuất">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    `;
-                    
-                    proposalTableBody.appendChild(row);
-                });
-                
-                // Add event listeners to edit and delete buttons
-                document.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const proposalId = parseInt(btn.getAttribute('data-id'));
-                        editProposal(proposalId);
-                    });
-                });
-                
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const proposalId = parseInt(btn.getAttribute('data-id'));
-                        showDeleteConfirmation(proposalId);
-                    });
-                });
-            }
-            
-            // Update pagination
-            renderPagination(totalPages);
-        }
-        
-        function renderPagination(totalPages) {
-            paginationContainer.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Previous button
-            const prevButton = document.createElement('button');
-            prevButton.className = 'pagination-button';
-            prevButton.innerHTML = '&laquo;';
-            prevButton.disabled = currentPage === 1;
-            prevButton.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    refreshTable();
-                }
-            });
-            paginationContainer.appendChild(prevButton);
-            
-            // Page buttons
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const pageButton = document.createElement('button');
-                pageButton.className = `pagination-button ${i === currentPage ? 'active' : ''}`;
-                pageButton.textContent = i;
-                pageButton.addEventListener('click', () => {
-                    currentPage = i;
-                    refreshTable();
-                });
-                paginationContainer.appendChild(pageButton);
-            }
-            
-            // Next button
-            const nextButton = document.createElement('button');
-            nextButton.className = 'pagination-button';
-            nextButton.innerHTML = '&raquo;';
-            nextButton.disabled = currentPage === totalPages;
-            nextButton.addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    refreshTable();
-                }
-            });
-            paginationContainer.appendChild(nextButton);
-        }
-        
-        function editProposal(id) {
-            const proposal = proposalData.find(p => p.stt === id);
-            
-            if (!proposal) {
-                showAlert('Lỗi', 'Không tìm thấy đề xuất!', 'danger');
-                return;
-            }
-            
-            // Check if user has permission to edit
-            if (currentUserRole === 'branch' && proposal.chiNhanh !== currentBranch) {
-                showAlert('Lỗi', 'Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh khác!', 'danger');
-                return;
-            }
-            
-            // Fill the form
-            document.getElementById('editId').value = proposal.stt;
-            document.getElementById('editNguoiDeNghi').value = proposal.nguoiDeNghi;
-            document.getElementById('editBoPhan').value = proposal.boPhan;
-            document.getElementById('editNgayThang').value = formatDateInput(proposal.ngayThang);
-            document.getElementById('editMaDeXuat').value = proposal.maDeXuat;
-            document.getElementById('editDeXuat').value = proposal.deXuat;
-            document.getElementById('editNoiDung').value = proposal.noiDung;
-            document.getElementById('editNhaCungCap').value = proposal.nhaCungCap || '';
-            document.getElementById('editDuTinh').value = proposal.duTinh || '';
-            document.getElementById('editSoTienDuocDuyet').value = proposal.soTienDuocDuyet || '';
-            document.getElementById('editGhiChu').value = proposal.ghiChu || '';
-            document.getElementById('editHoanThanh').value = proposal.hoanThanh || '';
-            document.getElementById('editChiNhanh').value = proposal.chiNhanh;
-            
-            editProposalModal.show();
-        }
-        
-        function showDeleteConfirmation(id) {
-            const proposal = proposalData.find(p => p.stt === id);
-            
-            if (!proposal) {
-                showAlert('Lỗi', 'Không tìm thấy đề xuất!', 'danger');
-                return;
-            }
-            
-            // Check if user has permission to delete
-            if (currentUserRole === 'branch' && proposal.chiNhanh !== currentBranch) {
-                showAlert('Lỗi', 'Bạn không có quyền xóa đề xuất từ chi nhánh khác!', 'danger');
-                return;
-            }
-            
-            document.getElementById('deleteProposalInfo').textContent = 
-                `Đề xuất: ${proposal.deXuat} - ${proposal.nguoiDeNghi} - Chi nhánh: ${proposal.chiNhanh}`;
-                
-            document.getElementById('confirmDeleteBtn').onclick = () => {
-                deleteProposal(id);
-            };
-            
-            deleteConfirmModal.show();
-        }
-        
-        function deleteProposal(id) {
-            const index = proposalData.findIndex(p => p.stt === id);
-            
-            if (index !== -1) {
-                const deletedProposal = proposalData[index];
-                proposalData.splice(index, 1);
-                deleteConfirmModal.hide();
-                refreshTable();
-                showAlert('Thành công', `Đã xóa đề xuất từ chi nhánh ${deletedProposal.chiNhanh}!`, 'success');
-            }
-        }
-        
-        function exportSummary(branchType) {
-            // Filter proposals by branch type
-            const filteredProposals = proposalData.filter(p => p.chiNhanh.startsWith(branchType));
-            
-            if (filteredProposals.length === 0) {
-                showAlert('Thông báo', `Không có đề xuất nào từ chi nhánh ${branchType} để xuất báo cáo!`, 'warning');
-                return;
-            }
-            
-            // Group by branch
-            const branchSummary = {};
-            
-            filteredProposals.forEach(proposal => {
-                if (!branchSummary[proposal.chiNhanh]) {
-                    branchSummary[proposal.chiNhanh] = {
-                        totalProposals: 0,
-                        completedProposals: 0,
-                        totalEstimatedAmount: 0,
-                        totalApprovedAmount: 0,
-                        proposals: []
-                    };
-                }
-                
-                branchSummary[proposal.chiNhanh].totalProposals++;
-                branchSummary[proposal.chiNhanh].completedProposals += proposal.hoanThanh === 'X' ? 1 : 0;
-                branchSummary[proposal.chiNhanh].totalEstimatedAmount += parseNumber(proposal.duTinh) || 0;
-                branchSummary[proposal.chiNhanh].totalApprovedAmount += parseNumber(proposal.soTienDuocDuyet) || 0;
-                branchSummary[proposal.chiNhanh].proposals.push(proposal);
-            });
-            
-            // Prepare data for export
-            const summaryData = [
-                ['Chi nhánh', 'Tổng số đề xuất', 'Đã hoàn thành', 'Tỷ lệ hoàn thành', 'Tổng dự tính', 'Tổng được duyệt']
-            ];
-            
-            const detailData = [
-                ['STT', 'Người đề nghị', 'Bộ phận', 'Ngày tháng', 'Mã số đề xuất', 'Đề xuất', 'Nội dung', 
-                'Nhà cung cấp', 'Dự tính', 'Số tiền được duyệt', 'Ghi chú', 'Hoàn thành', 'Chi nhánh']
-            ];
-            
-            Object.keys(branchSummary).forEach(branch => {
-                const summary = branchSummary[branch];
-                const completionRate = summary.totalProposals > 0 ? 
-                    (summary.completedProposals / summary.totalProposals * 100).toFixed(2) + '%' : '0%';
-                
-                summaryData.push([
-                    branch,
-                    summary.totalProposals,
-                    summary.completedProposals,
-                    completionRate,
-                    summary.totalEstimatedAmount,
-                    summary.totalApprovedAmount
-                ]);
-                
-                // Add details
-                summary.proposals.forEach(proposal => {
-                    detailData.push([
-                        proposal.stt,
-                        proposal.nguoiDeNghi,
-                        proposal.boPhan,
-                        formatDateDisplay(proposal.ngayThang),
-                        proposal.maDeXuat,
-                        proposal.deXuat,
-                        proposal.noiDung,
-                        proposal.nhaCungCap,
-                        proposal.duTinh,
-                        proposal.soTienDuocDuyet,
-                        proposal.ghiChu,
-                        proposal.hoanThanh,
-                        proposal.chiNhanh
-                    ]);
-                });
-            });
-            
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            
-            // Add summary sheet
-            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-            XLSX.utils.book_append_sheet(wb, wsSummary, 'Tổng hợp');
-            
-            // Add details sheet
-            const wsDetails = XLSX.utils.aoa_to_sheet(detailData);
-            XLSX.utils.book_append_sheet(wb, wsDetails, 'Chi tiết');
-            
-            // Write file
-            XLSX.writeFile(wb, `Bao_Cao_${branchType}_${formatDateSimple(new Date())}.xlsx`);
-        }
-        
-        function showAlert(title, message, type) {
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            document.getElementById('alertToast').classList.remove('bg-success', 'bg-danger', 'bg-warning');
-            
-            if (type === 'success') {
-                document.getElementById('alertToast').classList.add('bg-success', 'text-white');
-            } else if (type === 'danger') {
-                document.getElementById('alertToast').classList.add('bg-danger', 'text-white');
-            } else if (type === 'warning') {
-                document.getElementById('alertToast').classList.add('bg-warning');
-            }
-            
-            alertToast.show();
-        }
-        
-        // Utility functions
-        function sanitizeInput(input) {
-            if (!input) return '';
-            return String(input)
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-        
-        function parseNumber(value) {
-            if (value === null || value === undefined || value === '') return 0;
-            const parsed = parseFloat(String(value).replace(/[^\d.-]/g, ''));
-            return isNaN(parsed) ? 0 : parsed;
-        }
-        
-        function formatCurrency(value) {
-            if (!value) return '';
-            return new Intl.NumberFormat('vi-VN').format(value);
-        }
-        
-        function formatDate(dateValue) {
-            if (!dateValue) return '';
-            
-            // Handle Excel date format (numeric timestamp)
-            if (typeof dateValue === 'number') {
-                const date = new Date(Math.round((dateValue - 25569) * 86400 * 1000));
-                return date.toISOString().split('T')[0];
-            }
-            
-            // Handle string date in format DD/MM/YYYY
-            if (typeof dateValue === 'string' && dateValue.includes('/')) {
-                const parts = dateValue.split('/');
-                if (parts.length === 3) {
-                    // Convert from DD/MM/YYYY to YYYY-MM-DD
-                    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                }
-            }
-            
-            // Already in YYYY-MM-DD format or other formats that Date can parse
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-                return '';
-            }
-            return date.toISOString().split('T')[0];
-        }
-        
-        function formatDateInput(dateValue) {
-            if (!dateValue) return '';
-            // Ensure date is in YYYY-MM-DD format for input[type=date]
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-                return '';
-            }
-            return date.toISOString().split('T')[0];
-        }
-        
-        function formatDateDisplay(dateValue) {
-            if (!dateValue) return '';
-            // Convert to DD/MM/YYYY for display
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-                return dateValue;
-            }
-            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-        }
-        
-        function formatDateSimple(date) {
-            return `${date.getDate()}${(date.getMonth() + 1)}${date.getFullYear()}`;
-        }
-    </script>
+      });
+
+    document.getElementById('proposalForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = {
+        nguoiDeNghi: document.getElementById('nguoiDeNghi').value.trim(),
+        noiDung: document.getElementById('noiDung').value.trim(),
+        chiNhanh: user.branch || 'ADMIN'
+      };
+
+      fetch(`${API_BASE}/api/proposals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(() => {
+        document.getElementById('submitMessage').style.display = 'block';
+        e.target.reset();
+      });
+    });
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+      if (!res.ok) throw res;
+      return res.json();
+    })
+    .then(data => {
+      localStorage.setItem('user', JSON.stringify(data));
+      location.reload();
+    })
+    .catch(async (err) => {
+      const data = await err.json();
+      const errorBox = document.getElementById('loginError');
+      errorBox.textContent = data.error || 'Sai thông tin đăng nhập';
+      errorBox.style.display = 'block';
+    });
+  });
+
+  document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    fetch(`${API_BASE}/logout`, { method: 'POST' }).then(() => {
+      localStorage.removeItem('user');
+      location.reload();
+    });
+  });
+});
+</script>
 </body>
 </html>
