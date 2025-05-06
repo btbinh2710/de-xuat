@@ -4,172 +4,91 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Đăng Nhập Hệ Thống</title>
+  <title>Đăng Nhập</title>
   <style>
     body {
-      background-color: #888;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
       display: flex;
+      height: 100vh;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
     }
-    .login-box {
-      background-color: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      width: 320px;
+    .login-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
     }
-    .login-box h2 {
+    .login-container h2 {
       text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 20px;
     }
-    .login-box input {
+    .login-container input {
       width: 100%;
-      padding: 0.6rem;
-      margin-bottom: 0.8rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
     }
-    .login-box button {
+    .login-container button {
       width: 100%;
-      padding: 0.7rem;
-      background-color: #007bff;
-      color: white;
+      padding: 10px;
+      background: #007BFF;
       border: none;
-      border-radius: 6px;
+      color: white;
       font-weight: bold;
+      border-radius: 4px;
       cursor: pointer;
     }
-    .login-box button:hover {
-      background-color: #0056b3;
-    }
-    .error-msg {
+    .error {
       color: red;
-      font-size: 0.9rem;
       text-align: center;
       display: none;
-    }
-    #dashboard {
-      display: none;
-      padding: 1rem;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="login-box" id="loginModal">
-    <h2>Đăng Nhập Hệ Thống</h2>
+  <div class="login-container">
+    <h2>Đăng Nhập</h2>
     <form id="loginForm">
       <input type="text" id="username" placeholder="Tên đăng nhập" required />
       <input type="password" id="password" placeholder="Mật khẩu" required />
-      <button type="submit">Đăng Nhập</button>
-      <div class="error-msg" id="loginError"></div>
+      <button type="submit">Đăng nhập</button>
     </form>
+    <div class="error" id="errorMsg">Sai tên đăng nhập hoặc mật khẩu</div>
   </div>
 
-  <div id="dashboard">
-    <button id="logoutBtn">Đăng xuất</button>
+  <script>
+    const API_BASE = 'https://de-xuat.onrender.com';
 
-    <h3>Gửi đề xuất mua sắm</h3>
-    <form id="proposalForm">
-      <input type="text" id="nguoiDeNghi" placeholder="Người đề nghị" required />
-      <textarea id="noiDung" placeholder="Nội dung đề xuất" required></textarea>
-      <button type="submit">Gửi đề xuất</button>
-      <div id="submitMessage" style="color:green; display:none;">✔ Lưu thành công!</div>
-    </form>
-
-    <h3>Danh sách đề xuất</h3>
-    <table border="1" width="100%" cellspacing="0" cellpadding="6">
-      <thead>
-        <tr><th>Người đề nghị</th><th>Nội dung</th><th>Chi nhánh</th></tr>
-      </thead>
-      <tbody id="proposalTableBody"></tbody>
-    </table>
-  </div>
-
-<script>
-const API_BASE = 'https://de-xuat.onrender.com';
-
-document.addEventListener('DOMContentLoaded', () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const loginModal = document.getElementById('loginModal');
-  const dashboard = document.getElementById('dashboard');
-
-  if (user) {
-    loginModal.style.display = 'none';
-    dashboard.style.display = 'block';
-
-    fetch(`${API_BASE}/api/proposals`)
-      .then(res => res.json())
-      .then(data => {
-        const list = user.role === 'admin'
-          ? data
-          : data.filter(p => p.chi_nhanh === user.branch);
-        const tbody = document.getElementById('proposalTableBody');
-        list.forEach(item => {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td>${item.nguoi_de_nghi}</td><td>${item.noi_dung}</td><td>${item.chi_nhanh}</td>`;
-          tbody.appendChild(row);
-        });
-      });
-
-    document.getElementById('proposalForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const data = {
-        nguoiDeNghi: document.getElementById('nguoiDeNghi').value.trim(),
-        noiDung: document.getElementById('noiDung').value.trim(),
-        chiNhanh: user.branch || 'ADMIN'
-      };
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
 
-      fetch(`${API_BASE}/api/proposals`, {
+      fetch(API_BASE + '/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
       })
-      .then(res => res.json())
-      .then(() => {
-        document.getElementById('submitMessage').style.display = 'block';
-        e.target.reset();
+      .then(res => {
+        if (!res.ok) throw new Error("Login failed");
+        return res.json();
+      })
+      .then(data => {
+        alert('Đăng nhập thành công!');
+        console.log('User info:', data);
+        // chuyển đến dashboard hoặc lưu vào localStorage nếu cần
+      })
+      .catch(err => {
+        document.getElementById('errorMsg').style.display = 'block';
+        console.error('Lỗi:', err);
       });
     });
-  }
-
-  document.getElementById('loginForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-
-    fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    })
-    .then(res => {
-      if (!res.ok) throw res;
-      return res.json();
-    })
-    .then(data => {
-      localStorage.setItem('user', JSON.stringify(data));
-      location.reload();
-    })
-    .catch(async (err) => {
-      const data = await err.json();
-      const errorBox = document.getElementById('loginError');
-      errorBox.textContent = data.error || 'Sai thông tin đăng nhập';
-      errorBox.style.display = 'block';
-    });
-  });
-
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    fetch(`${API_BASE}/logout`, { method: 'POST' }).then(() => {
-      localStorage.removeItem('user');
-      location.reload();
-    });
-  });
-});
-</script>
+  </script>
 </body>
 </html>
- 
