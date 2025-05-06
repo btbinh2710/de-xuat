@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
 import sqlite3
-import hashlib
+import bcrypt
 import jwt
 import datetime
+import os
 
 app = Flask(__name__)
-JWT_SECRET = 'PhuongAnhLogistics2025!'  # Lưu trong biến môi trường
+JWT_SECRET = os.environ.get('JWT_SECRET')  # Lấy từ biến môi trường
 
 def get_db():
     conn = sqlite3.connect('data.db')
@@ -16,7 +17,7 @@ def get_db():
 def register():
     data = request.get_json()
     username = data['username']
-    password = hashlib.sha256(data['password'].encode()).hexdigest()
+    password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     branch = data['branch']
     conn = get_db()
     c = conn.cursor()
@@ -34,13 +35,13 @@ def register():
 def login():
     data = request.get_json()
     username = data['username']
-    password = hashlib.sha256(data['password'].encode()).hexdigest()
+    password = data['password'].encode('utf-8')
     conn = get_db()
     c = conn.cursor()
-    c.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password))
+    c.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = c.fetchone()
     conn.close()
-    if user:
+    if user and bcrypt.checkpw(password, user['password'].encode('utf-8')):
         token = jwt.encode({
             'username': username,
             'branch': user['branch'],
@@ -86,5 +87,42 @@ def get_proposals():
     except jwt.InvalidTokenError:
         return jsonify({'error': 'Invalid token'}), 401
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+@app.route('/api/proposals/<int:id>', methods=['PUT'])
+def update_proposal(id):
+    token = request.headers.get('Authorization', '').split(' ')[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        data = request.get_json()
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''UPDATE proposals SET maHang = ?, tenHang = ?, donVi = ?, soLuong = ?, donGia = ?, thanhTien = ?, nhaCungCap = ?, ghiChu = ?
+                     WHERE id = ? AND branch = ?''',
+                  (data['maHang'], data['tenHang'], data['donVi'], data['soLuong'], data['donGia'],
+                   data['thanhTien'], data['nhaCungCap'], data['ghiChu'], id, payload['branch']))
+        conn.commit()
+        conn.close()
+        if c.rowcount == 0:
+            return jsonify({'error': 'Proposal not found'}), 404
+        return jsonify(data)
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+
+@app.route('/api/proposals/<int:id>', methods=['DELETE'])
+def delete_proposal(id):
+    token = request.headers.get('Authorization', '').split(' ')[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('DELETE FROM proposals WHERE id = ? AND branch = ?', (id, payload['branch']))
+        conn.commit()
+        conn.close()
+        if c.rowcount == 0:
+            return jsonify({'error': 'Proposal not found'}), 404
+        return jsonify({'message': 'Proposal deleted'})
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
