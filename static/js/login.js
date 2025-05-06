@@ -1,0 +1,1 @@
+// JavaScript login handler with role auto-detection
