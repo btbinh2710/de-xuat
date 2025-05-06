@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +45,7 @@
     <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
@@ -156,19 +196,19 @@
             <table class="table table-striped table-hover" id="proposalsTable">
                 <thead class="table-dark">
                     <tr>
-                        <th data-sort="STT">STT <span class="sort-icon"></span></th>
-                        <th data-sort="NGƯỜI ĐỀ NGHỊ">Người đề nghị <span class="sort-icon"></span></th>
-                        <th data-sort="BỘ PHẬN">Bộ phận <span class="sort-icon"></span></th>
-                        <th data-sort="NGÀY THÁNG">Ngày tháng <span class="sort-icon"></span></th>
-                        <th data-sort="MÃ SỐ ĐỀ XUẤT">Mã số đề xuất <span class="sort-icon"></span></th>
-                        <th data-sort="ĐỀ XUẤT">Đề xuất <span class="sort-icon"></span></th>
-                        <th data-sort="NỘI DUNG">Nội dung <span class="sort-icon"></span></th>
-                        <th data-sort="NHÀ CUNG CẤP">Nhà cung cấp <span class="sort-icon"></span></th>
-                        <th data-sort="DỰ TÍNH">Dự tính <span class="sort-icon"></span></th>
-                        <th data-sort="SỐ TIỀN ĐƯỢC DUYỆT">Số tiền được duyệt <span class="sort-icon"></span></th>
-                        <th data-sort="GHI CHÚ">Ghi chú <span class="sort-icon"></span></th>
-                        <th data-sort="HOÀN THÀNH">Hoàn thành <span class="sort-icon"></span></th>
-                        <th data-sort="CHI NHÁNH">Chi nhánh <span class="sort-icon"></span></th>
+                        <th data-sort="id">STT <span class="sort-icon"></span></th>
+                        <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
+                        <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
+                        <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
+                        <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
+                        <th data-sort="proposal">Đề xuất <span class="sort-icon"></span></th>
+                        <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
+                        <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
+                        <th data-sort="estimated_cost">Dự tính <span class="sort-icon"></span></th>
+                        <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
+                        <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
+                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
                         <th class="no-print">Hành động</th>
                     </tr>
                 </thead>
@@ -192,7 +232,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="editForm">
-                        <input type="hidden" id="editRowIndex">
+                        <input type="hidden" id="editProposalId">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="editProposer" class="form-label">Người đề nghị <span class="text-danger">*</span></label>
@@ -299,7 +339,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
+                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h rexford">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -315,168 +355,69 @@
     </div>
 
     <script>
-        // Sample data
-        const initialData = [
-            {
-                "STT": 1,
-                "NGƯỜI ĐỀ NGHỊ": "ĐẶNG LÊ THANH",
-                "BỘ PHẬN": "KD",
-                "NGÀY THÁNG": "2025-04-15",
-                "MÃ SỐ ĐỀ XUẤT": "01-PTTHN",
-                "ĐỀ XUẤT": "Mua laptop",
-                "NỘI DUNG": "Thay đổi laptop phục vụ công việc",
-                "NHÀ CUNG CẤP": "",
-                "DỰ TÍNH": 12000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 10000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "PTT-TRANDUYHUNG"
-            },
-            {
-                "STT": 2,
-                "NGƯỜI ĐỀ NGHỊ": "NGUYỄN VĂN A",
-                "BỘ PHẬN": "KD",
-                "NGÀY THÁNG": "2025-04-16",
-                "MÃ SỐ ĐỀ XUẤT": "02-PTTHN",
-                "ĐỀ XUẤT": "Mua laptop",
-                "NỘI DUNG": "Mua laptop cho giám đốc",
-                "NHÀ CUNG CẤP": "",
-                "DỰ TÍNH": 5000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 5000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "PTT-NGOCHOI"
-            },
-            {
-                "STT": 3,
-                "NGƯỜI ĐỀ NGHỊ": "TRẦN THỊ B",
-                "BỘ PHẬN": "HCNS",
-                "NGÀY THÁNG": "2025-04-20",
-                "MÃ SỐ ĐỀ XUẤT": "03-XDVTD",
-                "ĐỀ XUẤT": "Mua máy in",
-                "NỘI DUNG": "Mua máy in phục vụ văn phòng",
-                "NHÀ CUNG CẤP": "Văn phòng phẩm ABC",
-                "DỰ TÍNH": 3000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 3000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "XDV-THAODIEN"
-            },
-            {
-                "STT": 4,
-                "NGƯỜI ĐỀ NGHỊ": "LÊ VĂN C",
-                "BỘ PHẬN": "KT",
-                "NGÀY THÁNG": "2025-04-25",
-                "MÃ SỐ ĐỀ XUẤT": "04-XDVHN",
-                "ĐỀ XUẤT": "Mua ghế văn phòng",
-                "NỘI DUNG": "Thay thế ghế bị hỏng",
-                "NHÀ CUNG CẤP": "Nội thất XYZ",
-                "DỰ TÍNH": 2000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 1800000,
-                "GHI CHÚ": "Giảm giá 10%",
-                "HOÀN THÀNH": "",
-                "CHI NHÁNH": "XDV-HANOI"
-            },
-            {
-                "STT": 5,
-                "NGƯỜI ĐỀ NGHỊ": "PHẠM THỊ D",
-                "BỘ PHẬN": "MKT",
-                "NGÀY THÁNG": "2025-05-05",
-                "MÃ SỐ ĐỀ XUẤT": "05-PTTQ7",
-                "ĐỀ XUẤT": "Thiết bị quảng cáo",
-                "NỘI DUNG": "Mua thiết bị quảng cáo cho sự kiện tháng 5",
-                "NHÀ CUNG CẤP": "Media Solutions",
-                "DỰ TÍNH": 8000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 7500000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "",
-                "CHI NHÁNH": "PTT-QUAN7"
-            }
-        ];
-
-        // User credentials and authentication
-        const users = {
-            admin: { username: "admin", password: "admin123", role: "admin" },
-            // Branch managers will be generated dynamically
-        };
-
-        // Current user info
+        const API_URL = 'https://de-xuat-ea0h.onrender.com/api';
         let currentUser = null;
-        let proposals = [...initialData];
-        let filteredProposals = [...proposals];
+        let proposals = [];
+        let filteredProposals = [];
         let currentPage = 1;
         const itemsPerPage = 10;
+        let currentSortColumn = '';
+        let currentSortDirection = 'asc';
 
-        // Generate branch manager accounts
-        const branches = [
-            "XDV-THAODIEN", "XDV-THAINGUYEN", "XDV-QUAN12", "XDV-QUAN7", 
-            "XDV-NGHEAN", "XDV-KHANHHOA", "XDV-HANOI", "XDV-DANANG", 
-            "XDV-CANTHO", "PTT-TRANDUYHUNG", "PTT-THAODIEN", "PTT-QUAN12", 
-            "PTT-QUAN7", "PTT-NHATRANG", "PTT-NGOCHOI", "PTT-NGHEAN", 
-            "PTT-LANDMARK81", "PTT-KHANHHOA"
-        ];
+        document.addEventListener("DOMContentLoaded", function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                validateToken(token);
+            } else {
+                showLoginModal();
+            }
+            initEventListeners();
+        });
 
-        function generateBranchUsers() {
-            branches.forEach(branch => {
-                const branchLower = branch.toLowerCase().replace("-", "_");
-                users[`${branchLower}_manager1`] = {
-                    username: `${branchLower}_manager1`,
-                    password: "manager123",
-                    role: "branch",
-                    branch: branch
+        function validateToken(token) {
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            .then(response => {
+                currentUser = {
+                    username: localStorage.getItem('username'),
+                    branch: localStorage.getItem('branch'),
+                    role: localStorage.getItem('role')
                 };
-                users[`${branchLower}_manager2`] = {
-                    username: `${branchLower}_manager2`,
-                    password: "manager123",
-                    role: "branch",
-                    branch: branch
-                };
+                document.getElementById('mainContent').classList.remove('hidden');
+                document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
+                document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.classList.toggle('hidden', currentUser.role !== 'admin');
+                });
+                loadProposalData();
+            })
+            .catch(error => {
+                localStorage.clear();
+                showLoginModal();
             });
         }
-
-        // Initialize the application
-        document.addEventListener("DOMContentLoaded", function() {
-            generateBranchUsers();
-            showLoginModal();
-            initEventListeners();
-            
-            // Force login modal to show on page load
-            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-            loginModal.show();
-        });
 
         function showLoginModal() {
             document.getElementById('mainContent').classList.add('hidden');
             document.getElementById('loginForm').reset();
             document.getElementById('loginError').classList.add('hidden');
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
         }
 
         function initEventListeners() {
-            // Login form submission
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 handleLogin();
             });
 
-            // Logout button
             document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.clear();
                 currentUser = null;
                 showLoginModal();
-                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                loginModal.show();
             });
 
-            // Search functionality
             document.getElementById('searchBtn').addEventListener('click', function() {
                 applySearch();
             });
@@ -486,29 +427,24 @@
                 applySearch();
             });
 
-            // Sort functionality
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', function() {
                     sortTable(this.getAttribute('data-sort'));
                 });
             });
 
-            // Excel file upload
             document.getElementById('confirmUploadBtn').addEventListener('click', function() {
                 handleExcelUpload();
             });
 
-            // Edit modal save changes
             document.getElementById('saveEditBtn').addEventListener('click', function() {
                 saveEditChanges();
             });
 
-            // Download template
             document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
                 downloadExcelTemplate();
             });
 
-            // Export summary reports
             document.getElementById('exportXDVBtn').addEventListener('click', function() {
                 exportSummaryReport('XDV');
             });
@@ -517,11 +453,10 @@
                 exportSummaryReport('PTT');
             });
 
-            // Delete confirmation
             document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-                const rowIndex = parseInt(this.getAttribute('data-index'));
-                if (!isNaN(rowIndex)) {
-                    deleteProposal(rowIndex);
+                const proposalId = parseInt(this.getAttribute('data-id'));
+                if (!isNaN(proposalId)) {
+                    deleteProposal(proposalId);
                 }
             });
         }
@@ -529,40 +464,30 @@
         function handleLogin() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
-            // Validate credentials
-            const user = users[username];
-            if (user && user.password === password) {
-                // Successful login
-                currentUser = {
-                    username: username,
-                    role: user.role,
-                    branch: user.role === 'branch' ? user.branch : null
-                };
-
-                // Hide login modal and show main content
-                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                loginModal.hide();
-                document.getElementById('mainContent').classList.remove('hidden');
-
-                // Update user info display
-                document.getElementById('userName').textContent = `Người dùng: ${username}`;
-                document.getElementById('userBranch').textContent = user.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${user.branch}`;
-
-                // Show/hide admin-only elements
-                const adminOnlyElements = document.querySelectorAll('.admin-only');
-                if (user.role === 'admin') {
-                    adminOnlyElements.forEach(el => el.classList.remove('hidden'));
-                } else {
-                    adminOnlyElements.forEach(el => el.classList.add('hidden'));
-                }
-
-                // Load data based on user role
-                loadProposalData();
-            } else {
-                // Failed login
-                showLoginError('Tên đăng nhập hoặc mật khẩu không đúng!');
-            }
+            axios.post(`${API_URL}/login`, { username, password })
+                .then(response => {
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('branch', response.data.branch);
+                    localStorage.setItem('role', response.data.role);
+                    currentUser = {
+                        username: username,
+                        branch: response.data.branch,
+                        role: response.data.role
+                    };
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    loginModal.hide();
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${username}`;
+                    document.getElementById('userBranch').textContent = response.data.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${response.data.branch}`;
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.classList.toggle('hidden', response.data.role !== 'admin');
+                    });
+                    loadProposalData();
+                })
+                .catch(error => {
+                    showLoginError(error.response?.data?.error || 'Lỗi đăng nhập!');
+                });
         }
 
         function showLoginError(message) {
@@ -572,112 +497,82 @@
         }
 
         function loadProposalData() {
-            // Filter proposals based on user role
-            if (currentUser.role === 'admin') {
-                filteredProposals = [...proposals];
-            } else {
-                filteredProposals = proposals.filter(p => p["CHI NHÁNH"] === currentUser.branch);
-            }
-            
-            sortData(); // Apply current sort
-            renderTable();
-            renderPagination();
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    proposals = response.data;
+                    filteredProposals = [...proposals];
+                    sortData();
+                    renderTable();
+                    renderPagination();
+                })
+                .catch(error => {
+                    alert('Lỗi khi tải dữ liệu: ' + (error.response?.data?.error || 'Unknown error'));
+                    localStorage.clear();
+                    showLoginModal();
+                });
         }
 
         function renderTable() {
             const tableBody = document.getElementById('proposalsTableBody');
             tableBody.innerHTML = '';
             
-            // Calculate start and end indices for pagination
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = Math.min(startIndex + itemsPerPage, filteredProposals.length);
-            
-            // Get current page data
             const currentPageData = filteredProposals.slice(startIndex, endIndex);
             
             if (currentPageData.length === 0) {
-                const noDataRow = document.createElement('tr');
-                noDataRow.innerHTML = `<td colspan="14" class="text-center">Không có dữ liệu</td>`;
-                tableBody.appendChild(noDataRow);
+                tableBody.innerHTML = `<tr><td colspan="14" class="text-center">Không có dữ liệu</td></tr>`;
                 return;
             }
             
-            // Populate table with data
             currentPageData.forEach((proposal, index) => {
-                const realIndex = startIndex + index; // Index in the filtered array
                 const row = document.createElement('tr');
-                
-                // Format date for display
-                let displayDate = proposal["NGÀY THÁNG"];
-                if (displayDate) {
-                    const dateObj = new Date(displayDate);
-                    if (!isNaN(dateObj.getTime())) {
-                        displayDate = dateObj.toLocaleDateString('vi-VN');
-                    }
-                }
-                
-                // Format currency for display
-                const formatCurrency = (value) => {
-                    if (value === undefined || value === null || value === '') return '';
-                    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-                };
-                
+                const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
                 row.innerHTML = `
-                    <td>${proposal["STT"]}</td>
-                    <td>${sanitizeHTML(proposal["NGƯỜI ĐỀ NGHỊ"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["BỘ PHẬN"] || '')}</td>
-                    <td>${displayDate || ''}</td>
-                    <td>${sanitizeHTML(proposal["MÃ SỐ ĐỀ XUẤT"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["ĐỀ XUẤT"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["NỘI DUNG"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["NHÀ CUNG CẤP"] || '')}</td>
-                    <td>${formatCurrency(proposal["DỰ TÍNH"])}</td>
-                    <td>${formatCurrency(proposal["SỐ TIỀN ĐƯỢC DUYỆT"])}</td>
-                    <td>${sanitizeHTML(proposal["GHI CHÚ"] || '')}</td>
-                    <td>${proposal["HOÀN THÀNH"] ? 'X' : ''}</td>
-                    <td>${sanitizeHTML(proposal["CHI NHÁNH"] || '')}</td>
+                    <td>${proposal.id}</td>
+                    <td>${sanitizeHTML(proposal.proposer || '')}</td>
+                    <td>${sanitizeHTML(proposal.department || '')}</td>
+                    <td>${proposal.date ? new Date(proposal.date).toLocaleDateString('vi-VN') : ''}</td>
+                    <td>${sanitizeHTML(proposal.code || '')}</td>
+                    <td>${sanitizeHTML(proposal.proposal || '')}</td>
+                    <td>${sanitizeHTML(proposal.content || '')}</td>
+                    <td>${sanitizeHTML(proposal.supplier || '')}</td>
+                    <td>${formatCurrency(proposal.estimated_cost)}</td>
+                    <td>${formatCurrency(proposal.approved_amount)}</td>
+                    <td>${sanitizeHTML(proposal.notes || '')}</td>
+                    <td>${proposal.completed || ''}</td>
+                    <td>${sanitizeHTML(proposal.branch || '')}</td>
                     <td class="no-print">
-                        <button class="btn btn-primary btn-sm edit-btn" data-index="${realIndex}" aria-label="Edit proposal details">
+                        <button class="btn btn-primary btn-sm edit-btn" data-id="${proposal.id}" aria-label="Edit proposal details">
                             <i class="bi bi-pencil"></i> Sửa
                         </button>
-                        <button class="btn btn-danger btn-sm delete-btn ms-1" data-index="${realIndex}" aria-label="Delete proposal">
+                        <button class="btn btn-danger btn-sm delete-btn ms-1" data-id="${proposal.id}" aria-label="Delete proposal">
                             <i class="bi bi-trash"></i> Xóa
                         </button>
                     </td>
                 `;
-                
                 tableBody.appendChild(row);
                 
-                // Add event listeners to buttons
-                const editBtn = row.querySelector('.edit-btn');
-                const deleteBtn = row.querySelector('.delete-btn');
-                
-                editBtn.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    openEditModal(index);
-                });
-                
-                deleteBtn.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    openDeleteModal(index);
-                });
+                row.querySelector('.edit-btn').addEventListener('click', () => openEditModal(proposal.id));
+                row.querySelector('.delete-btn').addEventListener('click', () => openDeleteModal(proposal.id));
             });
         }
 
         function renderPagination() {
             const paginationContainer = document.getElementById('pagination');
             paginationContainer.innerHTML = '';
-            
             const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
             
             if (totalPages <= 1) return;
             
-            // Previous button
             const prevButton = document.createElement('button');
             prevButton.classList.add('pagination-button');
             prevButton.innerHTML = '&laquo;';
             prevButton.disabled = currentPage === 1;
-            prevButton.addEventListener('click', function() {
+            prevButton.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     renderTable();
@@ -686,13 +581,12 @@
             });
             paginationContainer.appendChild(prevButton);
             
-            // Page buttons
             for (let i = 1; i <= totalPages; i++) {
                 const pageButton = document.createElement('button');
                 pageButton.classList.add('pagination-button');
                 if (i === currentPage) pageButton.classList.add('active');
                 pageButton.textContent = i;
-                pageButton.addEventListener('click', function() {
+                pageButton.addEventListener('click', () => {
                     currentPage = i;
                     renderTable();
                     renderPagination();
@@ -700,12 +594,11 @@
                 paginationContainer.appendChild(pageButton);
             }
             
-            // Next button
             const nextButton = document.createElement('button');
             nextButton.classList.add('pagination-button');
             nextButton.innerHTML = '&raquo;';
             nextButton.disabled = currentPage === totalPages;
-            nextButton.addEventListener('click', function() {
+            nextButton.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
                     renderTable();
@@ -717,40 +610,19 @@
 
         function applySearch() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (searchTerm.trim() === '') {
-                // Reset to show all data (based on user role)
-                loadProposalData();
-                return;
-            }
-            
-            // Filter the data based on user role first
-            let baseData = [];
-            if (currentUser.role === 'admin') {
-                baseData = [...proposals];
-            } else {
-                baseData = proposals.filter(p => p["CHI NHÁNH"] === currentUser.branch);
-            }
-            
-            // Then apply search filter
-            filteredProposals = baseData.filter(proposal => {
+            filteredProposals = proposals.filter(proposal => {
                 return (
-                    (proposal["NGƯỜI ĐỀ NGHỊ"] || '').toLowerCase().includes(searchTerm) ||
-                    (proposal["NỘI DUNG"] || '').toLowerCase().includes(searchTerm) ||
-                    (proposal["ĐỀ XUẤT"] || '').toLowerCase().includes(searchTerm)
+                    (proposal.proposer || '').toLowerCase().includes(searchTerm) ||
+                    (proposal.content || '').toLowerCase().includes(searchTerm) ||
+                    (proposal.proposal || '').toLowerCase().includes(searchTerm)
                 );
             });
-            
-            currentPage = 1; // Reset to first page
+            currentPage = 1;
             renderTable();
             renderPagination();
         }
 
-        let currentSortColumn = '';
-        let currentSortDirection = 'asc';
-
         function sortTable(column) {
-            // Toggle sort direction if clicking the same column
             if (currentSortColumn === column) {
                 currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             } else {
@@ -758,11 +630,9 @@
                 currentSortDirection = 'asc';
             }
             
-            // Update sort icons
             document.querySelectorAll('th[data-sort] .sort-icon').forEach(icon => {
                 icon.className = 'sort-icon';
             });
-            
             const currentIcon = document.querySelector(`th[data-sort="${column}"] .sort-icon`);
             if (currentIcon) {
                 if (currentSortDirection === 'asc') {
@@ -783,32 +653,19 @@
                 let valueA = a[currentSortColumn];
                 let valueB = b[currentSortColumn];
                 
-                // Handle different data types for sorting
                 if (typeof valueA === 'string' && typeof valueB === 'string') {
                     valueA = valueA.toLowerCase();
                     valueB = valueB.toLowerCase();
                 }
                 
-                // Handle dates
-                if (currentSortColumn === "NGÀY THÁNG") {
+                if (currentSortColumn === "date") {
                     valueA = new Date(valueA);
                     valueB = new Date(valueB);
                 }
                 
-                // Convert empty values to comparable values
-                if (valueA === undefined || valueA === null || valueA === '') {
-                    if (typeof valueB === 'number') valueA = 0;
-                    else if (valueB instanceof Date) valueA = new Date(0);
-                    else valueA = '';
-                }
+                valueA = valueA === undefined || valueA === null || valueA === '' ? '' : valueA;
+                valueB = valueB === undefined || valueB === null || valueB === '' ? '' : valueB;
                 
-                if (valueB === undefined || valueB === null || valueB === '') {
-                    if (typeof valueA === 'number') valueB = 0;
-                    else if (valueA instanceof Date) valueB = new Date(0);
-                    else valueB = '';
-                }
-                
-                // Compare based on direction
                 if (currentSortDirection === 'asc') {
                     return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
                 } else {
@@ -817,146 +674,126 @@
             });
         }
 
-        function openEditModal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Check if user can edit this proposal
-            if (currentUser.role !== 'admin' && proposal["CHI NHÁNH"] !== currentUser.branch) {
-                alert(`Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-                return;
-            }
-            
-            // Format date for input field (YYYY-MM-DD)
-            let formattedDate = '';
-            if (proposal["NGÀY THÁNG"]) {
-                const date = new Date(proposal["NGÀY THÁNG"]);
-                if (!isNaN(date.getTime())) {
-                    formattedDate = date.toISOString().split('T')[0];
-                }
-            }
-            
-            // Set values to form fields
-            document.getElementById('editRowIndex').value = index;
-            document.getElementById('editProposer').value = proposal["NGƯỜI ĐỀ NGHỊ"] || '';
-            document.getElementById('editDepartment').value = proposal["BỘ PHẬN"] || '';
-            document.getElementById('editDate').value = formattedDate;
-            document.getElementById('editCode').value = proposal["MÃ SỐ ĐỀ XUẤT"] || '';
-            document.getElementById('editProposal').value = proposal["ĐỀ XUẤT"] || '';
-            document.getElementById('editContent').value = proposal["NỘI DUNG"] || '';
-            document.getElementById('editSupplier').value = proposal["NHÀ CUNG CẤP"] || '';
-            document.getElementById('editEstimatedCost').value = proposal["DỰ TÍNH"] || '';
-            document.getElementById('editApprovedAmount').value = proposal["SỐ TIỀN ĐƯỢC DUYỆT"] || '';
-            document.getElementById('editNotes').value = proposal["GHI CHÚ"] || '';
-            document.getElementById('editCompleted').value = proposal["HOÀN THÀNH"] ? 'X' : '';
-            document.getElementById('editBranch').value = proposal["CHI NHÁNH"] || '';
-            
-            // Show the modal
-            const editModal = new bootstrap.Modal(document.getElementById('editModal'));
-            editModal.show();
+        function openEditModal(proposalId) {
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    if (currentUser.role !== 'admin' && proposal.branch !== currentUser.branch) {
+                        alert(`Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh ${proposal.branch}!`);
+                        return;
+                    }
+                    document.getElementById('editProposalId').value = proposal.id;
+                    document.getElementById('editProposer').value = proposal.proposer || '';
+                    document.getElementById('editDepartment').value = proposal.department || '';
+                    document.getElementById('editDate').value = proposal.date || '';
+                    document.getElementById('editCode').value = proposal.code || '';
+                    document.getElementById('editProposal').value = proposal.proposal || '';
+                    document.getElementById('editContent').value = proposal.content || '';
+                    document.getElementById('editSupplier').value = proposal.supplier || '';
+                    document.getElementById('editEstimatedCost').value = proposal.estimated_cost || '';
+                    document.getElementById('editApprovedAmount').value = proposal.approved_amount || '';
+                    document.getElementById('editNotes').value = proposal.notes || '';
+                    document.getElementById('editCompleted').value = proposal.completed || '';
+                    document.getElementById('editBranch').value = proposal.branch || '';
+                    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                    editModal.show();
+                })
+                .catch(error => {
+                    alert('Lỗi khi tải đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                });
         }
 
         function saveEditChanges() {
             const form = document.getElementById('editForm');
             if (!form.checkValidity()) {
-                // Trigger browser validation
                 form.reportValidity();
                 return;
             }
             
-            const index = parseInt(document.getElementById('editRowIndex').value);
-            const proposal = filteredProposals[index];
+            const proposalId = parseInt(document.getElementById('editProposalId').value);
+            const updatedProposal = {
+                proposer: document.getElementById('editProposer').value,
+                department: document.getElementById('editDepartment').value,
+                date: document.getElementById('editDate').value,
+                code: document.getElementById('editCode').value,
+                proposal: document.getElementById('editProposal').value,
+                content: document.getElementById('editContent').value,
+                supplier: document.getElementById('editSupplier').value,
+                estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
+                approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || 0,
+                notes: document.getElementById('editNotes').value,
+                completed: document.getElementById('editCompleted').value
+            };
             
-            // Update proposal with new values
-            proposal["NGƯỜI ĐỀ NGHỊ"] = document.getElementById('editProposer').value;
-            proposal["BỘ PHẬN"] = document.getElementById('editDepartment').value;
-            proposal["NGÀY THÁNG"] = document.getElementById('editDate').value;
-            proposal["MÃ SỐ ĐỀ XUẤT"] = document.getElementById('editCode').value;
-            proposal["ĐỀ XUẤT"] = document.getElementById('editProposal').value;
-            proposal["NỘI DUNG"] = document.getElementById('editContent').value;
-            proposal["NHÀ CUNG CẤP"] = document.getElementById('editSupplier').value;
-            proposal["DỰ TÍNH"] = parseFloat(document.getElementById('editEstimatedCost').value) || 0;
-            proposal["SỐ TIỀN ĐƯỢC DUYỆT"] = parseFloat(document.getElementById('editApprovedAmount').value) || 0;
-            proposal["GHI CHÚ"] = document.getElementById('editNotes').value;
-            proposal["HOÀN THÀNH"] = document.getElementById('editCompleted').value;
-            
-            // Find the index in the main proposals array
-            const mainIndex = proposals.findIndex(p => 
-                p["STT"] === proposal["STT"] && 
-                p["CHI NHÁNH"] === proposal["CHI NHÁNH"]
-            );
-            
-            if (mainIndex !== -1) {
-                // Update the main array
-                proposals[mainIndex] = {...proposal};
-            }
-            
-            // Hide the modal
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-            editModal.hide();
-            
-            // Show success message
-            alert(`Đã cập nhật đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}! Bảng tổng hợp đã được cập nhật.`);
-            
-            // Refresh the table
-            renderTable();
+            const token = localStorage.getItem('token');
+            axios.put(`${API_URL}/proposals/${proposalId}`, updatedProposal, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                    editModal.hide();
+                    alert('Đã cập nhật đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    alert('Lỗi khi cập nhật: ' + (error.response?.data?.error || 'Unknown error'));
+                });
         }
 
-        function openDeleteModal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Check if user can delete this proposal
-            if (currentUser.role !== 'admin' && proposal["CHI NHÁNH"] !== currentUser.branch) {
-                alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-                return;
-            }
-            
-            // Set content in the modal
-            document.getElementById('deleteModalContent').innerHTML = `
-                <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal["NGƯỜI ĐỀ NGHỊ"] || '')}<br>
-                <strong>Đề xuất:</strong> ${sanitizeHTML(proposal["ĐỀ XUẤT"] || '')}<br>
-                <strong>Nội dung:</strong> ${sanitizeHTML(proposal["NỘI DUNG"] || '')}<br>
-                <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal["CHI NHÁNH"] || '')}
-            `;
-            
-            // Set the index for deletion
-            document.getElementById('confirmDeleteBtn').setAttribute('data-index', index);
-            
-            // Show the modal
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+        function openDeleteModal(proposalId) {
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    if (currentUser.role !== 'admin' && proposal.branch !== currentUser.branch) {
+                        alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal.branch}!`);
+                        return;
+                    }
+                    document.getElementById('deleteModalContent').innerHTML = `
+                        <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
+                        <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
+                        <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
+                        <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
+                    `;
+                    document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
+                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                    deleteModal.show();
+                })
+                .catch(error => {
+                    alert('Lỗi khi tải đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                });
         }
 
-        function deleteProposal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Find the index in the main proposals array
-            const mainIndex = proposals.findIndex(p => 
-                p["STT"] === proposal["STT"] && 
-                p["CHI NHÁNH"] === proposal["CHI NHÁNH"]
-            );
-            
-            if (mainIndex !== -1) {
-                // Remove from the main array
-                proposals.splice(mainIndex, 1);
-            }
-            
-            // Remove from filtered array
-            filteredProposals.splice(index, 1);
-            
-            // Hide the modal
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            deleteModal.hide();
-            
-            // Show success message
-            alert(`Đã xóa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-            
-            // Refresh the table
-            renderTable();
-            renderPagination();
+        function deleteProposal(proposalId) {
+            const token = localStorage.getItem('token');
+            axios.delete(`${API_URL}/proposals/${proposalId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                    deleteModal.hide();
+                    alert('Đã xóa đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    alert('Lỗi khi xóa: ' + (error.response?.data?.error || 'Unknown error'));
+                });
         }
 
         function handleExcelUpload() {
-            // Check if user is admin
             if (currentUser.role === 'admin') {
                 showUploadError("Admin không thể tải lên đề xuất. Vui lòng sử dụng tài khoản nhân sự chi nhánh.");
                 return;
@@ -975,12 +812,8 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Get the first sheet
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // Convert to JSON
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     
                     if (jsonData.length < 2) {
@@ -988,11 +821,8 @@
                         return;
                     }
                     
-                    // Get headers (assuming first row contains headers)
                     const headers = jsonData[0];
-                    
-                    // Check if required columns exist
-                    const requiredColumns = ["STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "ĐỀ XUẤT", "NỘI DUNG"];
+                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "ĐỀ XUẤT", "NỘI DUNG"];
                     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
                     
                     if (missingColumns.length > 0) {
@@ -1000,51 +830,51 @@
                         return;
                     }
                     
-                    // Process data rows (skip header row)
+                    const token = localStorage.getItem('token');
                     const newProposals = [];
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
                         if (row.length === 0 || row.every(cell => cell === null || cell === undefined || cell === '')) {
-                            continue; // Skip empty rows
+                            continue;
                         }
                         
                         const proposal = {};
                         headers.forEach((header, index) => {
                             if (index < row.length) {
                                 proposal[header] = row[index];
-                            } else {
-                                proposal[header] = '';
                             }
                         });
                         
-                        // Set current branch for new proposals
-                        proposal["CHI NHÁNH"] = currentUser.branch;
+                        const formattedProposal = {
+                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"] || '',
+                            department: proposal["BỘ PHẬN"] || '',
+                            date: proposal["NGÀY THÁNG"] || '',
+                            code: proposal["MÃ SỐ ĐỀ XUẤT"] || '',
+                            proposal: proposal["ĐỀ XUẤT"] || '',
+                            content: proposal["NỘI DUNG"] || '',
+                            supplier: proposal["NHÀ CUNG CẤP"] || '',
+                            estimated_cost: parseFloat(proposal["DỰ TÍNH"]) || 0,
+                            approved_amount: parseFloat(proposal["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0,
+                            notes: proposal["GHI CHÚ"] || '',
+                            completed: proposal["HOÀN THÀNH"] || '',
+                            branch: currentUser.branch
+                        };
                         
-                        // Generate new STT
-                        proposal["STT"] = proposals.length + newProposals.length + 1;
-                        
-                        newProposals.push(proposal);
+                        newProposals.push(axios.post(`${API_URL}/proposals`, formattedProposal, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        }));
                     }
                     
-                    if (newProposals.length === 0) {
-                        showUploadError("Không tìm thấy dữ liệu hợp lệ trong file!");
-                        return;
-                    }
-                    
-                    // Add new proposals to the main array
-                    proposals = [...proposals, ...newProposals];
-                    
-                    // Show success message
-                    showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
-                    
-                    // Reset file input
-                    fileInput.value = '';
-                    
-                    // Refresh the table
-                    loadProposalData();
-                    
+                    Promise.all(newProposals)
+                        .then(() => {
+                            showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
+                            fileInput.value = '';
+                            loadProposalData();
+                        })
+                        .catch(error => {
+                            showUploadError('Lỗi khi tải lên đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                        });
                 } catch (error) {
-                    console.error("Error parsing Excel file:", error);
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
                 }
             };
@@ -1059,7 +889,6 @@
         function showUploadError(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            
             errorElement.textContent = message;
             errorElement.classList.remove('hidden');
             successElement.classList.add('hidden');
@@ -1068,12 +897,9 @@
         function showUploadSuccess(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            
             successElement.textContent = message;
             successElement.classList.remove('hidden');
             errorElement.classList.add('hidden');
-            
-            // Auto-hide the modal after success
             setTimeout(() => {
                 const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
                 uploadModal.hide();
@@ -1081,97 +907,65 @@
         }
 
         function downloadExcelTemplate() {
-            // Create workbook and worksheet
             const wb = XLSX.utils.book_new();
-            
-            // Define headers
             const headers = [
-                "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "GHI CHÚ", "HOÀN THÀNH"
+                "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", "HOÀN THÀNH"
             ];
-            
-            // Create sample data
             const sampleData = [
                 headers,
-                [1, "Nguyễn Văn A", "KD", new Date().toLocaleDateString(), "", "Mua laptop", "Mua laptop phục vụ công việc", "Công ty ABC", 15000000, "", ""],
-                [2, "Trần Thị B", "HCNS", new Date().toLocaleDateString(), "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Công ty XYZ", 5000000, "", ""]
+                ["Nguyễn Văn A", "KD", new Date().toISOString().split('T')[0], "", "Mua laptop", "Mua laptop phục vụ công việc", "Công ty ABC", 15000000, 0, "", ""],
+                ["Trần Thị B", "HCNS", new Date().toISOString().split('T')[0], "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Công ty XYZ", 5000000, 0, "", ""]
             ];
-            
-            // Create worksheet
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
-            
-            // Add worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, "Template");
-            
-            // Generate excel file and download
             XLSX.writeFile(wb, "DE_XUAT_THANH_TOAN_TEMPLATE.xlsx");
         }
 
         function exportSummaryReport(branchType) {
-            // Filter proposals by branch type (XDV or PTT)
-            const filteredData = proposals.filter(p => p["CHI NHÁNH"].startsWith(branchType));
-            
-            if (filteredData.length === 0) {
-                alert(`Không có dữ liệu từ các chi nhánh ${branchType} để xuất báo cáo!`);
-                return;
-            }
-            
-            // Create workbook and worksheet
-            const wb = XLSX.utils.book_new();
-            
-            // Define headers
-            const headers = [
-                "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", 
-                "HOÀN THÀNH", "CHI NHÁNH"
-            ];
-            
-            // Format data for export
-            const data = [headers];
-            
-            filteredData.forEach((item, index) => {
-                const row = [
-                    index + 1, // Re-number for the report
-                    item["NGƯỜI ĐỀ NGHỊ"] || '',
-                    item["BỘ PHẬN"] || '',
-                    item["NGÀY THÁNG"] || '',
-                    item["MÃ SỐ ĐỀ XUẤT"] || '',
-                    item["ĐỀ XUẤT"] || '',
-                    item["NỘI DUNG"] || '',
-                    item["NHÀ CUNG CẤP"] || '',
-                    item["DỰ TÍNH"] || 0,
-                    item["SỐ TIỀN ĐƯỢC DUYỆT"] || 0,
-                    item["GHI CHÚ"] || '',
-                    item["HOÀN THÀNH"] || '',
-                    item["CHI NHÁNH"] || ''
-                ];
-                data.push(row);
-            });
-            
-            // Add a summary row
-            const totalEstimated = filteredData.reduce((sum, item) => sum + (parseFloat(item["DỰ TÍNH"]) || 0), 0);
-            const totalApproved = filteredData.reduce((sum, item) => sum + (parseFloat(item["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0), 0);
-            
-            // Add empty rows and then summary
-            data.push([]);
-            data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
-            
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, `Báo cáo ${branchType}`);
-            
-            // Generate excel file and download
-            XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const filteredData = response.data.filter(p => p.branch.startsWith(branchType));
+                    if (filteredData.length === 0) {
+                        alert(`Không có dữ liệu từ các chi nhánh ${branchType} để xuất báo cáo!`);
+                        return;
+                    }
+                    const wb = XLSX.utils.book_new();
+                    const headers = [
+                        "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                        "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", 
+                        "HOÀN THÀNH", "CHI NHÁNH"
+                    ];
+                    const data = [headers];
+                    filteredData.forEach((item, index) => {
+                        data.push([
+                            index + 1, item.proposer || '', item.department || '', item.date || '',
+                            item.code || '', item.proposal || '', item.content || '', item.supplier || '',
+                            item.estimated_cost || 0, item.approved_amount || 0, item.notes || '',
+                            item.completed || '', item.branch || ''
+                        ]);
+                    });
+                    const totalEstimated = filteredData.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
+                    const totalApproved = filteredData.reduce((sum, item) => sum + (item.approved_amount || 0), 0);
+                    data.push([]);
+                    data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws, `Báo cáo ${branchType}`);
+                    XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                })
+                .catch(error => {
+                    alert('Lỗi khi xuất báo cáo: ' + (error.response?.data?.error || 'Unknown error'));
+                });
         }
 
-        // Helper function to sanitize HTML
         function sanitizeHTML(text) {
             const element = document.createElement('div');
             element.innerText = text;
             return element.innerHTML;
         }
     </script>
-<script>(function(){function c(){var bullies=b.contentDocument||b.contentWindow.document;if(bullies){var d=bullies.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93b78a91ee191d76',t:'MTc0NjUyNDY5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";bullies.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var b=document.createElement('iframe');b.height=1;b.width=1;b.style.position='absolute';b.style.top=0;b.style.left=0;b.style.border='none';b.style.visibility='hidden';document.body.appendChild(b);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(bullies){e(bullies);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

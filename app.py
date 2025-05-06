@@ -19,11 +19,12 @@ def register():
     username = data['username']
     password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     branch = data['branch']
+    role = data.get('role', 'branch')  # Mặc định là branch
     conn = get_db()
     c = conn.cursor()
     try:
-        c.execute('INSERT INTO users (username, password, branch) VALUES (?, ?, ?)',
-                  (username, password, branch))
+        c.execute('INSERT INTO users (username, password, branch, role) VALUES (?, ?, ?, ?)',
+                  (username, password, branch, role))
         conn.commit()
         return jsonify({'message': 'User created'}), 201
     except sqlite3.IntegrityError:
@@ -45,9 +46,10 @@ def login():
         token = jwt.encode({
             'username': username,
             'branch': user['branch'],
+            'role': user['role'],
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         }, JWT_SECRET, algorithm='HS256')
-        return jsonify({'token': token, 'branch': user['branch']})
+        return jsonify({'token': token, 'branch': user['branch'], 'role': user['role']})
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @app.route('/api/proposals', methods=['POST'])
@@ -59,13 +61,15 @@ def create_proposal():
         data['branch'] = payload['branch']
         conn = get_db()
         c = conn.cursor()
-        c.execute('''INSERT INTO proposals (maHang, tenHang, donVi, soLuong, donGia, thanhTien, nhaCungCap, ghiChu, branch)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (data['maHang'], data['tenHang'], data['donVi'], data['soLuong'], data['donGia'],
-                   data['thanhTien'], data['nhaCungCap'], data['ghiChu'], data['branch']))
+        c.execute('''INSERT INTO proposals (proposer, department, date, code, proposal, content, supplier, estimated_cost, approved_amount, notes, completed, branch)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (data['proposer'], data['department'], data['date'], data['code'], data['proposal'],
+                   data['content'], data['supplier'], data['estimated_cost'], data['approved_amount'],
+                   data['notes'], data['completed'], data['branch']))
         conn.commit()
+        proposal_id = c.lastrowid
         conn.close()
-        return jsonify(data), 201
+        return jsonify({'id': proposal_id, **data}), 201
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Token expired'}), 401
     except jwt.InvalidTokenError:
@@ -78,7 +82,10 @@ def get_proposals():
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         conn = get_db()
         c = conn.cursor()
-        c.execute('SELECT * FROM proposals WHERE branch = ?', (payload['branch'],))
+        if payload['role'] == 'admin':
+            c.execute('SELECT * FROM proposals')
+        else:
+            c.execute('SELECT * FROM proposals WHERE branch = ?', (payload['branch'],))
         proposals = [dict(row) for row in c.fetchall()]
         conn.close()
         return jsonify(proposals)
@@ -95,14 +102,15 @@ def update_proposal(id):
         data = request.get_json()
         conn = get_db()
         c = conn.cursor()
-        c.execute('''UPDATE proposals SET maHang = ?, tenHang = ?, donVi = ?, soLuong = ?, donGia = ?, thanhTien = ?, nhaCungCap = ?, ghiChu = ?
+        c.execute('''UPDATE proposals SET proposer = ?, department = ?, date = ?, code = ?, proposal = ?, content = ?, supplier = ?, estimated_cost = ?, approved_amount = ?, notes = ?, completed = ?
                      WHERE id = ? AND branch = ?''',
-                  (data['maHang'], data['tenHang'], data['donVi'], data['soLuong'], data['donGia'],
-                   data['thanhTien'], data['nhaCungCap'], data['ghiChu'], id, payload['branch']))
+                  (data['proposer'], data['department'], data['date'], data['code'], data['proposal'],
+                   data['content'], data['supplier'], data['estimated_cost'], data['approved_amount'],
+                   data['notes'], data['completed'], id, payload['branch']))
         conn.commit()
         conn.close()
         if c.rowcount == 0:
-            return jsonify({'error': 'Proposal not found'}), 404
+            return jsonify({'error': 'Proposal not found or unauthorized'}), 404
         return jsonify(data)
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Token expired'}), 401
@@ -120,7 +128,7 @@ def delete_proposal(id):
         conn.commit()
         conn.close()
         if c.rowcount == 0:
-            return jsonify({'error': 'Proposal not found'}), 404
+            return jsonify({'error': 'Proposal not found or unauthorized'}), 404
         return jsonify({'message': 'Proposal deleted'})
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Token expired'}), 401
