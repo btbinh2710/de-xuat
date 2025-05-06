@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Bật CORS toàn bộ, hỗ trợ credentials
+# Bật CORS toàn bộ + hỗ trợ credentials
 CORS(app, supports_credentials=True)
 
 DATABASE = 'data.db'
@@ -24,50 +24,34 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-    user = cursor.fetchone()
-    conn.close()
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
 
-    if user and check_password_hash(user['password'], password):
-        session['user'] = {
-            "username": user['username'],
-            "role": user['role'],
-            "branch": user['branch']
-        }
-        return jsonify(session['user'])
+        if user and check_password_hash(user['password'], password):
+            session['user'] = {
+                "username": user['username'],
+                "role": user['role'],
+                "branch": user['branch']
+            }
+            return jsonify(session['user']), 200
+        else:
+            return jsonify({"error": "Tên đăng nhập hoặc mật khẩu không đúng"}), 401
 
-    return jsonify({"error": "Tên đăng nhập hoặc mật khẩu không đúng"}), 401
+    except Exception as e:
+        return jsonify({"error": "Lỗi xử lý login", "details": str(e)}), 500
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
-    return jsonify({"message": "Đã đăng xuất"})
-
-@app.route('/api/proposals', methods=['GET', 'POST'])
-def proposals():
-    if request.method == 'POST':
-        data = request.get_json()
-        conn = get_db()
-        conn.execute(
-            "INSERT INTO proposals (nguoi_de_nghi, noi_dung, chi_nhanh) VALUES (?, ?, ?)",
-            (data['nguoiDeNghi'], data['noiDung'], data['chiNhanh'])
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({"message": "Đã lưu đề xuất thành công"})
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM proposals")
-    proposals = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return jsonify(proposals)
+    return jsonify({"message": "Đã đăng xuất"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
