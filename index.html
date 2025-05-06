@@ -65,6 +65,7 @@
 
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      document.getElementById('errorMsg').style.display = 'none';
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
@@ -75,21 +76,20 @@
         },
         body: JSON.stringify({ username, password })
       })
-      .then(res => {
-        if (!res.ok) throw new Error("Login failed");
-        return res.json();
-      })
-      .then(data => {
-        alert('Đăng nhập thành công!');
-        console.log('User info:', data);
-        // chuyển đến dashboard hoặc lưu vào localStorage nếu cần
+      .then(res => res.json().then(data => ({ status: res.status, body: data })))
+      .then(({ status, body }) => {
+        if (status === 200 && body.username) {
+          alert('✅ Đăng nhập thành công!');
+          console.log('User info:', body);
+        } else {
+          throw new Error("Sai thông tin đăng nhập");
+        }
       })
       .catch(err => {
         document.getElementById('errorMsg').style.display = 'block';
-        console.error('Lỗi:', err);
+        console.error('Lỗi:', err.message);
       });
     });
   </script>
 </body>
 </html>
-  
