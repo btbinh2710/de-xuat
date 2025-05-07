@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/bash
 python create_db.py
-exec gunicorn app:app
+gunicorn --bind 0.0.0.0:$PORT app:app
