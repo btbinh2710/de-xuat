@@ -37,7 +37,39 @@
         }
         return gk_fileData[filename] || "";
         }
-        </script><!DOCTYPE html>
+        </script><script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+        return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                    headerRowIndex = 0;
+                }
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+    }
+</script>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -120,6 +152,10 @@
             .no-print {
                 display: none;
             }
+        }
+        /* Style cho hàng trùng lặp */
+        tr.duplicate {
+            background-color: yellow !important;
         }
     </style>
 </head>
@@ -339,7 +375,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h rexford">
+                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -364,6 +400,29 @@
         let currentSortColumn = '';
         let currentSortDirection = 'asc';
 
+        // Hàm kiểm tra token hợp lệ
+        async function checkTokenValidity() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                return false;
+            }
+            try {
+                const response = await axios.get(`${API_URL}/proposals`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                return true;
+            } catch (error) {
+                const errMsg = error.response?.data?.error || 'Unknown error';
+                if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                    localStorage.clear();
+                    currentUser = null;
+                    showLoginModal();
+                    alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                }
+                return false;
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             const token = localStorage.getItem('token');
             if (token) {
@@ -379,11 +438,15 @@
                 headers: { Authorization: `Bearer ${token}` }
             })
             .then(response => {
-                currentUser = {
+                const userData = {
                     username: localStorage.getItem('username'),
                     branch: localStorage.getItem('branch'),
                     role: localStorage.getItem('role')
                 };
+                if (!userData.username || !userData.role) {
+                    throw new Error('Thông tin người dùng không đầy đủ trong localStorage');
+                }
+                currentUser = userData;
                 document.getElementById('mainContent').classList.remove('hidden');
                 document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
                 document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
@@ -395,6 +458,7 @@
             .catch(error => {
                 localStorage.clear();
                 showLoginModal();
+                console.error('Lỗi xác thực token:', error.message);
             });
         }
 
@@ -498,6 +562,10 @@
 
         function loadProposalData() {
             const token = localStorage.getItem('token');
+            if (!token) {
+                showLoginModal();
+                return;
+            }
             axios.get(`${API_URL}/proposals`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
@@ -509,9 +577,14 @@
                     renderPagination();
                 })
                 .catch(error => {
-                    alert('Lỗi khi tải dữ liệu: ' + (error.response?.data?.error || 'Unknown error'));
-                    localStorage.clear();
-                    showLoginModal();
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    } else {
+                        alert('Lỗi khi tải dữ liệu: ' + errMsg);
+                    }
                 });
         }
 
@@ -528,8 +601,24 @@
                 return;
             }
             
+            // Tạo danh sách mã số đề xuất để kiểm tra trùng lặp
+            const codeBranchMap = new Map();
+            proposals.forEach(proposal => {
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                if (!codeBranchMap.has(key)) {
+                    codeBranchMap.set(key, []);
+                }
+                codeBranchMap.get(key).push(proposal);
+            });
+
             currentPageData.forEach((proposal, index) => {
                 const row = document.createElement('tr');
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                const isDuplicate = codeBranchMap.get(key).length > 1;
+                if (isDuplicate) {
+                    row.classList.add('duplicate');
+                }
+
                 const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
                 row.innerHTML = `
                     <td>${proposal.id}</td>
@@ -570,7 +659,7 @@
             
             const prevButton = document.createElement('button');
             prevButton.classList.add('pagination-button');
-            prevButton.innerHTML = '&laquo;';
+            prevButton.innerHTML = '«';
             prevButton.disabled = currentPage === 1;
             prevButton.addEventListener('click', () => {
                 if (currentPage > 1) {
@@ -596,7 +685,7 @@
             
             const nextButton = document.createElement('button');
             nextButton.classList.add('pagination-button');
-            nextButton.innerHTML = '&raquo;';
+            nextButton.innerHTML = '»';
             nextButton.disabled = currentPage === totalPages;
             nextButton.addEventListener('click', () => {
                 if (currentPage < totalPages) {
@@ -706,7 +795,12 @@
                     editModal.show();
                 })
                 .catch(error => {
-                    alert('Lỗi khi tải đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    alert('Lỗi khi tải đề xuất: ' + errMsg);
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                    }
                 });
         }
 
@@ -743,11 +837,21 @@
                     loadProposalData();
                 })
                 .catch(error => {
-                    alert('Lỗi khi cập nhật: ' + (error.response?.data?.error || 'Unknown error'));
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    alert('Lỗi khi cập nhật: ' + errMsg);
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                    }
                 });
         }
 
-        function openDeleteModal(proposalId) {
+        async function openDeleteModal(proposalId) {
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) {
+                return;
+            }
+
             const token = localStorage.getItem('token');
             axios.get(`${API_URL}/proposals`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -758,26 +862,55 @@
                         alert('Đề xuất không tồn tại!');
                         return;
                     }
-                    if (currentUser.role !== 'admin' && proposal.branch !== currentUser.branch) {
-                        alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal.branch}!`);
-                        return;
-                    }
-                    document.getElementById('deleteModalContent').innerHTML = `
-                        <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
-                        <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
-                        <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
-                        <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
-                    `;
-                    document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
-                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-                    deleteModal.show();
+                    // Kiểm tra quyền từ dữ liệu trả về
+                    axios.get(`${API_URL}/proposals`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                        .then(userResponse => {
+                            const userData = response.data[0]; // Dữ liệu người dùng từ API
+                            const userBranch = userData.branch;
+                            const userRole = userData.role;
+
+                            if (userRole !== 'admin' && proposal.branch !== userBranch) {
+                                alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal.branch}!`);
+                                return;
+                            }
+
+                            document.getElementById('deleteModalContent').innerHTML = `
+                                <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
+                                <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
+                                <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
+                                <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
+                            `;
+                            document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
+                            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                            deleteModal.show();
+                        })
+                        .catch(error => {
+                            const errMsg = error.response?.data?.error || 'Unknown error';
+                            alert('Lỗi khi kiểm tra quyền: ' + errMsg);
+                            if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                                localStorage.clear();
+                                showLoginModal();
+                            }
+                        });
                 })
                 .catch(error => {
-                    alert('Lỗi khi tải đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    alert('Lỗi khi tải đề xuất: ' + errMsg);
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                    }
                 });
         }
 
-        function deleteProposal(proposalId) {
+        async function deleteProposal(proposalId) {
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) {
+                return;
+            }
+
             const token = localStorage.getItem('token');
             axios.delete(`${API_URL}/proposals/${proposalId}`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -789,7 +922,16 @@
                     loadProposalData();
                 })
                 .catch(error => {
-                    alert('Lỗi khi xóa: ' + (error.response?.data?.error || 'Unknown error'));
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    } else if (errMsg.includes('unauthorized')) {
+                        alert('Bạn không có quyền xóa đề xuất này! Vui lòng kiểm tra chi nhánh hoặc vai trò của bạn.');
+                    } else {
+                        alert('Lỗi khi xóa: ' + errMsg);
+                    }
                 });
         }
 
@@ -832,6 +974,9 @@
                     
                     const token = localStorage.getItem('token');
                     const newProposals = [];
+                    const duplicates = new Set();
+                    const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}`));
+
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
                         if (row.length === 0 || row.every(cell => cell === null || cell === undefined || cell === '')) {
@@ -860,19 +1005,38 @@
                             branch: currentUser.branch
                         };
                         
+                        const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
+                        if (existingCodes.has(key)) {
+                            duplicates.add(key);
+                            continue;
+                        }
+                        existingCodes.add(key);
                         newProposals.push(axios.post(`${API_URL}/proposals`, formattedProposal, {
                             headers: { Authorization: `Bearer ${token}` }
                         }));
                     }
                     
+                    if (newProposals.length === 0) {
+                        showUploadError("Không có đề xuất mới để tải lên hoặc tất cả đề xuất trùng lặp!");
+                        return;
+                    }
+
                     Promise.all(newProposals)
                         .then(() => {
                             showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
                             fileInput.value = '';
                             loadProposalData();
+                            if (duplicates.size > 0) {
+                                alert(`Có ${duplicates.size} đề xuất trùng lặp đã bị bỏ qua và không được thêm vào. Các hàng trùng lặp sẽ được bôi vàng trong bảng.`);
+                            }
                         })
                         .catch(error => {
-                            showUploadError('Lỗi khi tải lên đề xuất: ' + (error.response?.data?.error || 'Unknown error'));
+                            const errMsg = error.response?.data?.error || 'Unknown error';
+                            showUploadError('Lỗi khi tải lên đề xuất: ' + errMsg);
+                            if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                                localStorage.clear();
+                                showLoginModal();
+                            }
                         });
                 } catch (error) {
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
@@ -957,7 +1121,12 @@
                     XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
                 })
                 .catch(error => {
-                    alert('Lỗi khi xuất báo cáo: ' + (error.response?.data?.error || 'Unknown error'));
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    alert('Lỗi khi xuất báo cáo: ' + errMsg);
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginModal();
+                    }
                 });
         }
 
@@ -967,5 +1136,6 @@
             return element.innerHTML;
         }
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93bd9503b8991379',t:'MTc0NjU4ODAzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
