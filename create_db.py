@@ -2,6 +2,15 @@ import sqlite3
 import bcrypt
 
 def create_db():
+    # Xóa database cũ nếu tồn tại
+    try:
+        import os
+        if os.path.exists('data.db'):
+            os.remove('data.db')
+            print('✅ Đã xóa database cũ.')
+    except Exception as e:
+        print(f'⚠ Lỗi khi xóa database cũ: {e}')
+
     conn = sqlite3.connect('data.db')
     c = conn.cursor()
     

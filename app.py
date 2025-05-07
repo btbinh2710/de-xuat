@@ -4,9 +4,14 @@ import bcrypt
 import jwt
 import datetime
 import os
+import logging
 
 app = Flask(__name__)
-JWT_SECRET = os.environ.get('JWT_SECRET')  # Lấy từ biến môi trường
+# Thiết lập logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+JWT_SECRET = os.environ.get('JWT_SECRET')
 
 def get_db():
     conn = sqlite3.connect('data.db')
@@ -19,7 +24,7 @@ def register():
     username = data['username']
     password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     branch = data['branch']
-    role = data.get('role', 'branch')  # Mặc định là branch
+    role = data.get('role', 'branch')
     conn = get_db()
     c = conn.cursor()
     try:
@@ -42,15 +47,27 @@ def login():
     c.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = c.fetchone()
     conn.close()
-    if user and bcrypt.checkpw(password, user['password'].encode('utf-8')):
-        token = jwt.encode({
-            'username': username,
-            'branch': user['branch'],
-            'role': user['role'],
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-        }, JWT_SECRET, algorithm='HS256')
-        return jsonify({'token': token, 'branch': user['branch'], 'role': user['role']})
-    return jsonify({'error': 'Invalid credentials'}), 401
+    
+    if not user:
+        logger.error(f"Login failed: Username {username} not found")
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    try:
+        if bcrypt.checkpw(password, user['password'].encode('utf-8')):
+            token = jwt.encode({
+                'username': username,
+                'branch': user['branch'],
+                'role': user['role'],
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            }, JWT_SECRET, algorithm='HS256')
+            logger.info(f"Login successful for {username}")
+            return jsonify({'token': token, 'branch': user['branch'], 'role': user['role']})
+        else:
+            logger.error(f"Login failed: Incorrect password for {username}")
+            return jsonify({'error': 'Invalid credentials'}), 401
+    except ValueError as e:
+        logger.error(f"Login failed for {username}: Invalid salt - {str(e)}")
+        return jsonify({'error': 'Invalid password format in database'}), 500
 
 @app.route('/api/proposals', methods=['POST'])
 def create_proposal():
