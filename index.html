@@ -37,140 +37,63 @@
         }
         return gk_fileData[filename] || "";
         }
-        </script><!DOCTYPE html>
+        </script><script type="text/javascript">
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+        return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                    headerRowIndex = 0;
+                }
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+    }
+</script>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
-    <!-- CSS files -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <!-- Glassy Login Form CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: url('https://images.unsplash.com/photo-1507521628349-dee6c896a2c8') no-repeat center center fixed;
-            background-size: cover;
-        }
-        .header-w3l {
-            margin: 2em 0 1em;
-            text-align: center;
-        }
-        .header-w3l h1 {
-            font-size: 3em;
-            color: #000;
-            letter-spacing: 1px;
-            font-weight: 300;
-            text-shadow: 0 1px 2px #000;
-            margin-bottom: 0.5em;
-        }
-        .main-w3layouts-agileinfo {
-            width: 30%;
-            margin: 0 auto;
-        }
-        .wthree-form {
-            background: rgba(0, 0, 0, 0.47);
-            padding: 2em;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        .wthree-form h2 {
-            font-size: 1.5em;
-            color: #000;
-            text-align: center;
-            margin-bottom: 1.5em;
-        }
-        .form-sub-w3 {
-            position: relative;
-            margin-bottom: 1.5em;
-        }
-        .form-sub-w3 input[type="text"],
-        .form-sub-w3 input[type="password"] {
-            outline: none;
-            font-size: 0.9em;
-            color: #fff;
-            padding: 0.8em 0.5em 0.8em 1em;
-            border: 1px solid #fff;
-            background: transparent;
-            width: 100%;
-            box-sizing: border-box;
-            border-radius: 5px;
-        }
-        .form-sub-w3 input[type="text"]::placeholder,
-        .form-sub-w3 input[type="password"]::placeholder {
-            color: #ccc;
-        }
-        .icon-w3 {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .icon-w3 i {
-            color: #fff;
-            font-size: 1em;
-        }
-        .submit-agileits {
-            text-align: center;
-        }
-        .submit-agileits input[type="submit"] {
-            outline: none;
-            color: #fff;
-            padding: 0.5em 2em;
-            font-size: 1em;
-            border: none;
-            background: #00c6d7;
-            cursor: pointer;
-            border-radius: 25px;
-            transition: 0.5s all;
-            -webkit-transition: 0.5s all;
-            -moz-transition: 0.5s all;
-        }
-        .submit-agileits input[type="submit"]:hover {
-            background: #007bff;
-        }
-        .footer {
-            text-align: center;
-            margin: 2em 0;
-        }
-        .footer p {
-            color: #fff;
-            font-size: 0.9em;
-        }
-        .footer a {
-            color: #00c6d7;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            color: #fff;
-        }
-        .login-logo {
-            display: block;
-            margin: 0 auto 10px;
-            max-width: 200px;
-            height: auto;
-        }
-        .alert-danger {
-            background-color: rgba(255, 99, 71, 0.8);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 1em;
-            display: none;
-        }
-        .main-content {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding-bottom: 50px;
         }
+        .login-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
         .header {
-            background-color: #ffffff;
+            background-color: #f8f9fa;
             padding: 15px 0;
             border-bottom: 1px solid #dee2e6;
             margin-bottom: 20px;
@@ -230,59 +153,44 @@
                 display: none;
             }
         }
+        /* Style cho hàng trùng lặp */
         tr.duplicate {
             background-color: yellow !important;
         }
-        .main-logo {
-            display: block;
-            margin: 0 auto 10px;
-            max-width: 200px;
-            height: auto;
-        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
-    <!-- Login Form -->
-    <div id="loginFormContainer" class="hidden">
-        <div class="header-w3l">
-            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="login-logo">
-            <h1>ĐĂNG NHẬP HỆ THỐNG</h1>
-        </div>
-        <div class="main-w3layouts-agileinfo">
-            <div class="wthree-form">
-                <h2>THÔNG TIN ĐĂNG NHẬP</h2>
-                <form id="loginForm">
-                    <div class="form-sub-w3">
-                        <input type="text" id="username" name="Username" placeholder="Tên đăng nhập" required />
-                        <div class="icon-w3">
-                            <i class="fa fa-user" aria-hidden="true"></i>
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="loginModalLabel">Đăng Nhập Hệ Thống</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Tên đăng nhập</label>
+                            <input type="text" class="form-control" id="username" required>
                         </div>
-                    </div>
-                    <div class="form-sub-w3">
-                        <input type="password" id="password" name="Password" placeholder="Mật khẩu" required />
-                        <div class="icon-w3">
-                            <i class="fa fa-unlock-alt" aria-hidden="true"></i>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mật khẩu</label>
+                            <input type="password" class="form-control" id="password" required>
                         </div>
-                    </div>
-                    <div class="alert alert-danger hidden" id="loginError"></div>
-                    <div class="submit-agileits">
-                        <input type="submit" value="Đăng nhập">
-                    </div>
-                </form>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                        </div>
+                    </form>
+                    <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
+                </div>
             </div>
-        </div>
-        <div class="footer">
-            <p>© 2025 Hệ Thống Quản Lý Đề Xuất Mua Sắm</p>
         </div>
     </div>
     
     <!-- Main Content (Hidden until login) -->
-    <div id="mainContent" class="main-content hidden">
+    <div id="mainContent" class="container-fluid hidden">
+        <!-- Header -->
         <div class="header text-center">
-            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
             <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
             <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
             <div class="mt-2">
@@ -292,6 +200,7 @@
             </div>
         </div>
 
+        <!-- Control Panel -->
         <div class="row mb-4 no-print">
             <div class="col-md-8">
                 <div class="input-group">
@@ -310,6 +219,7 @@
             </div>
         </div>
 
+        <!-- Admin only buttons -->
         <div class="row mb-4 admin-only hidden no-print">
             <div class="col-12 text-end">
                 <button class="btn btn-primary" id="exportXDVBtn">Xuất báo cáo XDV</button>
@@ -317,6 +227,7 @@
             </div>
         </div>
 
+        <!-- Table -->
         <div class="table-responsive">
             <table class="table table-striped table-hover" id="proposalsTable">
                 <thead class="table-dark">
@@ -343,9 +254,93 @@
             </table>
         </div>
 
+        <!-- Pagination -->
         <div class="pagination-container no-print" id="pagination"></div>
     </div>
 
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editProposalId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editProposer" class="form-label">Người đề nghị <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProposer" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editDepartment" class="form-label">Bộ phận <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editDepartment" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editDate" class="form-label">Ngày tháng <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="editDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editCode" class="form-label">Mã số đề xuất</label>
+                                <input type="text" class="form-control" id="editCode">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editProposal" class="form-label">Đề xuất <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editProposal" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editSupplier" class="form-label">Nhà cung cấp</label>
+                                <input type="text" class="form-control" id="editSupplier">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editContent" class="form-label">Nội dung <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="editContent" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editEstimatedCost" class="form-label">Dự tính</label>
+                                <input type="number" class="form-control" id="editEstimatedCost">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editApprovedAmount" class="form-label">Số tiền được duyệt</label>
+                                <input type="number" class="form-control" id="editApprovedAmount">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editNotes" class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" id="editNotes">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editCompleted" class="form-label">Hoàn thành</label>
+                                <select class="form-select" id="editCompleted">
+                                    <option value="">Chưa hoàn thành</option>
+                                    <option value="X">Đã hoàn thành</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editBranch" class="form-label">Chi nhánh <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editBranch" readonly>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
     <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -375,6 +370,7 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -395,7 +391,7 @@
     </div>
 
     <script>
-        const API_URL = 'https://de-xuat-v2.onrender.com/api';
+        const API_URL = 'https://de-xuat-ea0h.onrender.com/api';
         let currentUser = null;
         let proposals = [];
         let filteredProposals = [];
@@ -404,6 +400,7 @@
         let currentSortColumn = '';
         let currentSortDirection = 'asc';
 
+        // Hàm kiểm tra token hợp lệ
         async function checkTokenValidity() {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -419,7 +416,7 @@
                 if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                     localStorage.clear();
                     currentUser = null;
-                    showLoginForm();
+                    showLoginModal();
                     alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
                 }
                 return false;
@@ -431,7 +428,7 @@
             if (token) {
                 validateToken(token);
             } else {
-                showLoginForm();
+                showLoginModal();
             }
             initEventListeners();
         });
@@ -451,7 +448,6 @@
                 }
                 currentUser = userData;
                 document.getElementById('mainContent').classList.remove('hidden');
-                document.getElementById('loginFormContainer').classList.add('hidden');
                 document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
                 document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
                 document.querySelectorAll('.admin-only').forEach(el => {
@@ -461,111 +457,72 @@
             })
             .catch(error => {
                 localStorage.clear();
-                showLoginForm();
+                showLoginModal();
                 console.error('Lỗi xác thực token:', error.message);
             });
         }
 
-        function showLoginForm() {
+        function showLoginModal() {
             document.getElementById('mainContent').classList.add('hidden');
-            document.getElementById('loginFormContainer').classList.remove('hidden');
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.reset();
-            }
-            const loginError = document.getElementById('loginError');
-            if (loginError) {
-                loginError.classList.add('hidden');
-            }
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
         }
 
         function initEventListeners() {
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    handleLogin();
-                });
-            }
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleLogin();
+            });
 
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    localStorage.clear();
-                    currentUser = null;
-                    showLoginForm();
-                });
-            }
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.clear();
+                currentUser = null;
+                showLoginModal();
+            });
 
-            const searchBtn = document.getElementById('searchBtn');
-            if (searchBtn) {
-                searchBtn.addEventListener('click', function() {
-                    applySearch();
-                });
-            }
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                applySearch();
+            });
 
-            const clearSearchBtn = document.getElementById('clearSearchBtn');
-            if (clearSearchBtn) {
-                clearSearchBtn.addEventListener('click', function() {
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) searchInput.value = '';
-                    applySearch();
-                });
-            }
+            document.getElementById('clearSearchBtn').addEventListener('click', function() {
+                document.getElementById('searchInput').value = '';
+                applySearch();
+            });
 
-            const thSortElements = document.querySelectorAll('th[data-sort]');
-            if (thSortElements) {
-                thSortElements.forEach(th => {
-                    th.addEventListener('click', function() {
-                        sortTable(this.getAttribute('data-sort'));
-                    });
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.addEventListener('click', function() {
+                    sortTable(this.getAttribute('data-sort'));
                 });
-            }
+            });
 
-            const confirmUploadBtn = document.getElementById('confirmUploadBtn');
-            if (confirmUploadBtn) {
-                confirmUploadBtn.addEventListener('click', function() {
-                    handleExcelUpload();
-                });
-            }
+            document.getElementById('confirmUploadBtn').addEventListener('click', function() {
+                handleExcelUpload();
+            });
 
-            const saveEditBtn = document.getElementById('saveEditBtn');
-            if (saveEditBtn) {
-                saveEditBtn.addEventListener('click', function() {
-                    saveEditChanges();
-                });
-            }
+            document.getElementById('saveEditBtn').addEventListener('click', function() {
+                saveEditChanges();
+            });
 
-            const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-            if (downloadTemplateBtn) {
-                downloadTemplateBtn.addEventListener('click', function() {
-                    downloadExcelTemplate();
-                });
-            }
+            document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
+                downloadExcelTemplate();
+            });
 
-            const exportXDVBtn = document.getElementById('exportXDVBtn');
-            if (exportXDVBtn) {
-                exportXDVBtn.addEventListener('click', function() {
-                    exportSummaryReport('XDV');
-                });
-            }
+            document.getElementById('exportXDVBtn').addEventListener('click', function() {
+                exportSummaryReport('XDV');
+            });
 
-            const exportPTTBtn = document.getElementById('exportPTTBtn');
-            if (exportPTTBtn) {
-                exportPTTBtn.addEventListener('click', function() {
-                    exportSummaryReport('PTT');
-                });
-            }
+            document.getElementById('exportPTTBtn').addEventListener('click', function() {
+                exportSummaryReport('PTT');
+            });
 
-            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-            if (confirmDeleteBtn) {
-                confirmDeleteBtn.addEventListener('click', function() {
-                    const proposalId = parseInt(this.getAttribute('data-id'));
-                    if (!isNaN(proposalId)) {
-                        deleteProposal(proposalId);
-                    }
-                });
-            }
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+                const proposalId = parseInt(this.getAttribute('data-id'));
+                if (!isNaN(proposalId)) {
+                    deleteProposal(proposalId);
+                }
+            });
         }
 
         function handleLogin() {
@@ -582,12 +539,13 @@
                         branch: response.data.branch,
                         role: response.data.role
                     };
-                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    loginModal.hide();
                     document.getElementById('mainContent').classList.remove('hidden');
                     document.getElementById('userName').textContent = `Người dùng: ${username}`;
-                    document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
+                    document.getElementById('userBranch').textContent = response.data.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${response.data.branch}`;
                     document.querySelectorAll('.admin-only').forEach(el => {
-                        el.classList.toggle('hidden', currentUser.role !== 'admin');
+                        el.classList.toggle('hidden', response.data.role !== 'admin');
                     });
                     loadProposalData();
                 })
@@ -598,16 +556,14 @@
 
         function showLoginError(message) {
             const errorElement = document.getElementById('loginError');
-            if (errorElement) {
-                errorElement.textContent = message;
-                errorElement.classList.remove('hidden');
-            }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
         }
 
         function loadProposalData() {
             const token = localStorage.getItem('token');
             if (!token) {
-                showLoginForm();
+                showLoginModal();
                 return;
             }
             axios.get(`${API_URL}/proposals`, {
@@ -624,7 +580,7 @@
                     const errMsg = error.response?.data?.error || 'Unknown error';
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                         alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
                     } else {
                         alert('Lỗi khi tải dữ liệu: ' + errMsg);
@@ -634,8 +590,6 @@
 
         function renderTable() {
             const tableBody = document.getElementById('proposalsTableBody');
-            if (!tableBody) return;
-
             tableBody.innerHTML = '';
             
             const startIndex = (currentPage - 1) * itemsPerPage;
@@ -647,6 +601,7 @@
                 return;
             }
             
+            // Tạo danh sách mã số đề xuất để kiểm tra trùng lặp
             const codeBranchMap = new Map();
             proposals.forEach(proposal => {
                 const key = `${proposal.code || ''}-${proposal.branch}`;
@@ -690,21 +645,13 @@
                 `;
                 tableBody.appendChild(row);
                 
-                const editBtn = row.querySelector('.edit-btn');
-                if (editBtn) {
-                    editBtn.addEventListener('click', () => openEditModal(proposal.id));
-                }
-                const deleteBtn = row.querySelector('.delete-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', () => openDeleteModal(proposal.id));
-                }
+                row.querySelector('.edit-btn').addEventListener('click', () => openEditModal(proposal.id));
+                row.querySelector('.delete-btn').addEventListener('click', () => openDeleteModal(proposal.id));
             });
         }
 
         function renderPagination() {
             const paginationContainer = document.getElementById('pagination');
-            if (!paginationContainer) return;
-
             paginationContainer.innerHTML = '';
             const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
             
@@ -751,10 +698,7 @@
         }
 
         function applySearch() {
-            const searchInput = document.getElementById('searchInput');
-            if (!searchInput) return;
-
-            const searchTerm = searchInput.value.toLowerCase();
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             filteredProposals = proposals.filter(proposal => {
                 return (
                     (proposal.proposer || '').toLowerCase().includes(searchTerm) ||
@@ -776,7 +720,7 @@
             }
             
             document.querySelectorAll('th[data-sort] .sort-icon').forEach(icon => {
-                if (icon) icon.className = 'sort-icon';
+                icon.className = 'sort-icon';
             });
             const currentIcon = document.querySelector(`th[data-sort="${column}"] .sort-icon`);
             if (currentIcon) {
@@ -834,98 +778,35 @@
                         alert(`Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh ${proposal.branch}!`);
                         return;
                     }
-                    const editModal = new bootstrap.Modal(document.createElement('div'));
-                    editModal._element.innerHTML = `
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header bg-primary text-white">
-                                    <h5 class="modal-title">Chỉnh sửa đề xuất</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="editForm">
-                                        <input type="hidden" id="editProposalId" value="${proposal.id}">
-                                        <div class="mb-3">
-                                            <label class="form-label">Người đề nghị</label>
-                                            <input type="text" class="form-control" id="editProposer" value="${proposal.proposer || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Bộ phận</label>
-                                            <input type="text" class="form-control" id="editDepartment" value="${proposal.department || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Ngày tháng</label>
-                                            <input type="date" class="form-control" id="editDate" value="${proposal.date || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Mã số đề xuất</label>
-                                            <input type="text" class="form-control" id="editCode" value="${proposal.code || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Đề xuất</label>
-                                            <input type="text" class="form-control" id="editProposal" value="${proposal.proposal || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Nội dung</label>
-                                            <input type="text" class="form-control" id="editContent" value="${proposal.content || ''}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Nhà cung cấp</label>
-                                            <input type="text" class="form-control" id="editSupplier" value="${proposal.supplier || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Dự tính</label>
-                                            <input type="number" class="form-control" id="editEstimatedCost" value="${proposal.estimated_cost || 0}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Số tiền được duyệt</label>
-                                            <input type="number" class="form-control" id="editApprovedAmount" value="${proposal.approved_amount || 0}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Ghi chú</label>
-                                            <input type="text" class="form-control" id="editNotes" value="${proposal.notes || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Hoàn thành</label>
-                                            <input type="text" class="form-control" id="editCompleted" value="${proposal.completed || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Chi nhánh</label>
-                                            <input type="text" class="form-control" id="editBranch" value="${proposal.branch || ''}" readonly>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    document.body.appendChild(editModal._element);
+                    document.getElementById('editProposalId').value = proposal.id;
+                    document.getElementById('editProposer').value = proposal.proposer || '';
+                    document.getElementById('editDepartment').value = proposal.department || '';
+                    document.getElementById('editDate').value = proposal.date || '';
+                    document.getElementById('editCode').value = proposal.code || '';
+                    document.getElementById('editProposal').value = proposal.proposal || '';
+                    document.getElementById('editContent').value = proposal.content || '';
+                    document.getElementById('editSupplier').value = proposal.supplier || '';
+                    document.getElementById('editEstimatedCost').value = proposal.estimated_cost || '';
+                    document.getElementById('editApprovedAmount').value = proposal.approved_amount || '';
+                    document.getElementById('editNotes').value = proposal.notes || '';
+                    document.getElementById('editCompleted').value = proposal.completed || '';
+                    document.getElementById('editBranch').value = proposal.branch || '';
+                    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
                     editModal.show();
-
-                    const saveEditBtn = document.getElementById('saveEditBtn');
-                    if (saveEditBtn) {
-                        saveEditBtn.addEventListener('click', function() {
-                            saveEditChanges();
-                            editModal.hide();
-                        });
-                    }
                 })
                 .catch(error => {
                     const errMsg = error.response?.data?.error || 'Unknown error';
                     alert('Lỗi khi tải đề xuất: ' + errMsg);
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                     }
                 });
         }
 
         function saveEditChanges() {
             const form = document.getElementById('editForm');
-            if (!form || !form.checkValidity()) {
+            if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
@@ -960,7 +841,7 @@
                     alert('Lỗi khi cập nhật: ' + errMsg);
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                     }
                 });
         }
@@ -981,32 +862,45 @@
                         alert('Đề xuất không tồn tại!');
                         return;
                     }
-                    if (currentUser.role !== 'admin' && proposal.branch !== currentUser.branch) {
-                        alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal.branch}!`);
-                        return;
-                    }
-                    const deleteModalContent = document.getElementById('deleteModalContent');
-                    if (deleteModalContent) {
-                        deleteModalContent.innerHTML = `
-                            <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
-                            <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
-                            <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
-                            <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
-                        `;
-                    }
-                    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-                    if (confirmDeleteBtn) {
-                        confirmDeleteBtn.setAttribute('data-id', proposalId);
-                    }
-                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-                    deleteModal.show();
+                    // Kiểm tra quyền từ dữ liệu trả về
+                    axios.get(`${API_URL}/proposals`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                        .then(userResponse => {
+                            const userData = response.data[0]; // Dữ liệu người dùng từ API
+                            const userBranch = userData.branch;
+                            const userRole = userData.role;
+
+                            if (userRole !== 'admin' && proposal.branch !== userBranch) {
+                                alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal.branch}!`);
+                                return;
+                            }
+
+                            document.getElementById('deleteModalContent').innerHTML = `
+                                <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
+                                <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
+                                <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
+                                <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
+                            `;
+                            document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
+                            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                            deleteModal.show();
+                        })
+                        .catch(error => {
+                            const errMsg = error.response?.data?.error || 'Unknown error';
+                            alert('Lỗi khi kiểm tra quyền: ' + errMsg);
+                            if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                                localStorage.clear();
+                                showLoginModal();
+                            }
+                        });
                 })
                 .catch(error => {
                     const errMsg = error.response?.data?.error || 'Unknown error';
                     alert('Lỗi khi tải đề xuất: ' + errMsg);
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                     }
                 });
         }
@@ -1031,7 +925,7 @@
                     const errMsg = error.response?.data?.error || 'Unknown error';
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                         alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
                     } else if (errMsg.includes('unauthorized')) {
                         alert('Bạn không có quyền xóa đề xuất này! Vui lòng kiểm tra chi nhánh hoặc vai trò của bạn.');
@@ -1141,7 +1035,7 @@
                             showUploadError('Lỗi khi tải lên đề xuất: ' + errMsg);
                             if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                                 localStorage.clear();
-                                showLoginForm();
+                                showLoginModal();
                             }
                         });
                 } catch (error) {
@@ -1159,25 +1053,21 @@
         function showUploadError(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            if (errorElement && successElement) {
-                errorElement.textContent = message;
-                errorElement.classList.remove('hidden');
-                successElement.classList.add('hidden');
-            }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            successElement.classList.add('hidden');
         }
 
         function showUploadSuccess(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            if (errorElement && successElement) {
-                successElement.textContent = message;
-                successElement.classList.remove('hidden');
-                errorElement.classList.add('hidden');
-                setTimeout(() => {
-                    const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
-                    uploadModal.hide();
-                }, 2000);
-            }
+            successElement.textContent = message;
+            successElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            setTimeout(() => {
+                const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                uploadModal.hide();
+            }, 2000);
         }
 
         function downloadExcelTemplate() {
@@ -1235,7 +1125,7 @@
                     alert('Lỗi khi xuất báo cáo: ' + errMsg);
                     if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                         localStorage.clear();
-                        showLoginForm();
+                        showLoginModal();
                     }
                 });
         }
@@ -1246,5 +1136,6 @@
             return element.innerHTML;
         }
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93bd9503b8991379',t:'MTc0NjU4ODAzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
