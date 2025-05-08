@@ -197,7 +197,6 @@
             margin-top: 1em;
             display: none;
         }
-        /* CSS cho mainContent (giữ nguyên) */
         .main-content {
             font-family: Arial, sans-serif;
             padding-bottom: 50px;
@@ -273,7 +272,6 @@
             height: auto;
         }
     </style>
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -315,7 +313,6 @@
     
     <!-- Main Content (Hidden until login) -->
     <div id="mainContent" class="main-content hidden">
-        <!-- Header -->
         <div class="header text-center">
             <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
             <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
@@ -343,6 +340,9 @@
                 <button class="btn btn-info ms-2" id="downloadTemplateBtn">
                     <i class="bi bi-download"></i> Tải mẫu Excel
                 </button>
+                <button class="btn btn-warning ms-2" id="downloadCurrentDataBtn">
+                    <i class="bi bi-download"></i> Tải dữ liệu hiện có
+                </button>
             </div>
         </div>
 
@@ -359,6 +359,7 @@
             <table class="table table-striped table-hover" id="proposalsTable">
                 <thead class="table-dark">
                     <tr>
+                        <th data-sort="order">Thứ tự <span class="sort-icon"></span></th>
                         <th data-sort="id">STT <span class="sort-icon"></span></th>
                         <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
                         <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
@@ -442,7 +443,7 @@
         let filteredProposals = [];
         let currentPage = 1;
         const itemsPerPage = 10;
-        let currentSortColumn = '';
+        let currentSortColumn = 'order'; // Mặc định sắp xếp theo thứ tự
         let currentSortDirection = 'asc';
 
         async function checkTokenValidity() {
@@ -584,6 +585,13 @@
                 });
             }
 
+            const downloadCurrentDataBtn = document.getElementById('downloadCurrentDataBtn');
+            if (downloadCurrentDataBtn) {
+                downloadCurrentDataBtn.addEventListener('click', function() {
+                    downloadCurrentData();
+                });
+            }
+
             const exportXDVBtn = document.getElementById('exportXDVBtn');
             if (exportXDVBtn) {
                 exportXDVBtn.addEventListener('click', function() {
@@ -684,29 +692,30 @@
             const currentPageData = filteredProposals.slice(startIndex, endIndex);
             
             if (currentPageData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="14" class="text-center">Không có dữ liệu</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="15" class="text-center">Không có dữ liệu</td></tr>`;
                 return;
             }
             
-            const codeBranchMap = new Map();
+            const codeBranchDateMap = new Map();
             proposals.forEach(proposal => {
-                const key = `${proposal.code || ''}-${proposal.branch}`;
-                if (!codeBranchMap.has(key)) {
-                    codeBranchMap.set(key, []);
+                const key = `${proposal.code || ''}-${proposal.branch}-${proposal.date}`;
+                if (!codeBranchDateMap.has(key)) {
+                    codeBranchDateMap.set(key, []);
                 }
-                codeBranchMap.get(key).push(proposal);
+                codeBranchDateMap.get(key).push(proposal);
             });
 
             currentPageData.forEach((proposal, index) => {
                 const row = document.createElement('tr');
-                const key = `${proposal.code || ''}-${proposal.branch}`;
-                const isDuplicate = codeBranchMap.get(key).length > 1;
+                const key = `${proposal.code || ''}-${proposal.branch}-${proposal.date}`;
+                const isDuplicate = codeBranchDateMap.get(key).length > 1;
                 if (isDuplicate) {
                     row.classList.add('duplicate');
                 }
 
                 const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
                 row.innerHTML = `
+                    <td>${proposal.order || (startIndex + index + 1)}</td>
                     <td>${proposal.id}</td>
                     <td>${sanitizeHTML(proposal.proposer || '')}</td>
                     <td>${sanitizeHTML(proposal.department || '')}</td>
@@ -875,36 +884,84 @@
                         alert(`Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh ${proposal.branch}!`);
                         return;
                     }
-                    const editProposalId = document.getElementById('editProposalId');
-                    const editProposer = document.getElementById('editProposer');
-                    const editDepartment = document.getElementById('editDepartment');
-                    const editDate = document.getElementById('editDate');
-                    const editCode = document.getElementById('editCode');
-                    const editProposal = document.getElementById('editProposal');
-                    const editContent = document.getElementById('editContent');
-                    const editSupplier = document.getElementById('editSupplier');
-                    const editEstimatedCost = document.getElementById('editEstimatedCost');
-                    const editApprovedAmount = document.getElementById('editApprovedAmount');
-                    const editNotes = document.getElementById('editNotes');
-                    const editCompleted = document.getElementById('editCompleted');
-                    const editBranch = document.getElementById('editBranch');
-
-                    if (editProposalId) editProposalId.value = proposal.id;
-                    if (editProposer) editProposer.value = proposal.proposer || '';
-                    if (editDepartment) editDepartment.value = proposal.department || '';
-                    if (editDate) editDate.value = proposal.date || '';
-                    if (editCode) editCode.value = proposal.code || '';
-                    if (editProposal) editProposal.value = proposal.proposal || '';
-                    if (editContent) editContent.value = proposal.content || '';
-                    if (editSupplier) editSupplier.value = proposal.supplier || '';
-                    if (editEstimatedCost) editEstimatedCost.value = proposal.estimated_cost || '';
-                    if (editApprovedAmount) editApprovedAmount.value = proposal.approved_amount || '';
-                    if (editNotes) editNotes.value = proposal.notes || '';
-                    if (editCompleted) editCompleted.value = proposal.completed || '';
-                    if (editBranch) editBranch.value = proposal.branch || '';
-
-                    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                    const editModal = new bootstrap.Modal(document.createElement('div'));
+                    editModal._element.innerHTML = `
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-primary text-white">
+                                    <h5 class="modal-title">Chỉnh sửa đề xuất</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="editForm">
+                                        <input type="hidden" id="editProposalId" value="${proposal.id}">
+                                        <div class="mb-3">
+                                            <label class="form-label">Người đề nghị</label>
+                                            <input type="text" class="form-control" id="editProposer" value="${proposal.proposer || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Bộ phận</label>
+                                            <input type="text" class="form-control" id="editDepartment" value="${proposal.department || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Ngày tháng</label>
+                                            <input type="date" class="form-control" id="editDate" value="${proposal.date || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Mã số đề xuất</label>
+                                            <input type="text" class="form-control" id="editCode" value="${proposal.code || ''}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Đề xuất</label>
+                                            <input type="text" class="form-control" id="editProposal" value="${proposal.proposal || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Nội dung</label>
+                                            <input type="text" class="form-control" id="editContent" value="${proposal.content || ''}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Nhà cung cấp</label>
+                                            <input type="text" class="form-control" id="editSupplier" value="${proposal.supplier || ''}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Dự tính</label>
+                                            <input type="number" class="form-control" id="editEstimatedCost" value="${proposal.estimated_cost || 0}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Số tiền được duyệt</label>
+                                            <input type="number" class="form-control" id="editApprovedAmount" value="${proposal.approved_amount || 0}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Ghi chú</label>
+                                            <input type="text" class="form-control" id="editNotes" value="${proposal.notes || ''}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Hoàn thành</label>
+                                            <input type="text" class="form-control" id="editCompleted" value="${proposal.completed || ''}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Chi nhánh</label>
+                                            <input type="text" class="form-control" id="editBranch" value="${proposal.branch || ''}" readonly>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(editModal._element);
                     editModal.show();
+
+                    const saveEditBtn = document.getElementById('saveEditBtn');
+                    if (saveEditBtn) {
+                        saveEditBtn.addEventListener('click', function() {
+                            saveEditChanges();
+                            editModal.hide();
+                        });
+                    }
                 })
                 .catch(error => {
                     const errMsg = error.response?.data?.error || 'Unknown error';
@@ -943,8 +1000,6 @@
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(() => {
-                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-                    editModal.hide();
                     alert('Đã cập nhật đề xuất!');
                     loadProposalData();
                 })
@@ -1052,10 +1107,10 @@
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, dateNF: 'yyyy-mm-dd' });
                     
                     if (jsonData.length < 2) {
                         showUploadError("File không chứa dữ liệu hoặc không đúng định dạng!");
@@ -1074,7 +1129,7 @@
                     const token = localStorage.getItem('token');
                     const newProposals = [];
                     const duplicates = new Set();
-                    const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}`));
+                    const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}-${p.date}`));
 
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
@@ -1085,11 +1140,16 @@
                         const proposal = {};
                         headers.forEach((header, index) => {
                             if (index < row.length) {
-                                proposal[header] = row[index];
+                                if (header === "NGÀY THÁNG" && row[index] instanceof Date) {
+                                    proposal[header] = row[index].toISOString().split('T')[0];
+                                } else {
+                                    proposal[header] = row[index];
+                                }
                             }
                         });
                         
                         const formattedProposal = {
+                            order: parseInt(proposal["THỨ TỰ"]) || i,
                             proposer: proposal["NGƯỜI ĐỀ NGHỊ"] || '',
                             department: proposal["BỘ PHẬN"] || '',
                             date: proposal["NGÀY THÁNG"] || '',
@@ -1104,7 +1164,7 @@
                             branch: currentUser.branch
                         };
                         
-                        const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
+                        const key = `${formattedProposal.code || ''}-${currentUser.branch}-${formattedProposal.date}`;
                         if (existingCodes.has(key)) {
                             duplicates.add(key);
                             continue;
@@ -1175,18 +1235,81 @@
 
         function downloadExcelTemplate() {
             const wb = XLSX.utils.book_new();
+            
+            // Sheet 1: Đề nghị thanh toán
             const headers = [
-                "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                "THỨ TỰ", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
                 "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", "HOÀN THÀNH"
             ];
             const sampleData = [
                 headers,
-                ["Nguyễn Văn A", "KD", new Date().toISOString().split('T')[0], "", "Mua laptop", "Mua laptop phục vụ công việc", "Công ty ABC", 15000000, 0, "", ""],
-                ["Trần Thị B", "HCNS", new Date().toISOString().split('T')[0], "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Công ty XYZ", 5000000, 0, "", ""]
+                [1, "Nguyễn Văn A", "KD", "2025-05-01", "Điện-0525", "Điện", "Điện tháng 5", "Công ty ABC", 2000000, 1800000, "", ""],
+                [2, "Trần Thị B", "HCNS", "2025-05-01", "Nước-0525", "Nước", "Nước tháng 5", "Công ty XYZ", 1000000, 900000, "", ""]
             ];
-            const ws = XLSX.utils.aoa_to_sheet(sampleData);
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            const ws1 = XLSX.utils.aoa_to_sheet(sampleData);
+            XLSX.utils.book_append_sheet(wb, ws1, "Đề nghị thanh toán");
+
+            // Sheet 2: So sánh thanh toán
+            const comparisonHeaders = [
+                "MÃ SỐ ĐỀ XUẤT", "NỘI DUNG", "THÁNG 1/2025", "THÁNG 2/2025", "THÁNG 3/2025", "THÁNG 4/2025", "THÁNG 5/2025"
+            ];
+            const comparisonData = [
+                comparisonHeaders,
+                ["Điện", "Điện", 1500000, 1600000, 1700000, 1700000, 1800000],
+                ["Nước", "Nước", 800000, 850000, 900000, 900000, 900000]
+            ];
+            const ws2 = XLSX.utils.aoa_to_sheet(comparisonData);
+            XLSX.utils.book_append_sheet(wb, ws2, "So sánh thanh toán");
+
             XLSX.writeFile(wb, "DE_XUAT_THANH_TOAN_TEMPLATE.xlsx");
+        }
+
+        function downloadCurrentData() {
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const data = response.data;
+                    if (data.length === 0) {
+                        alert('Không có dữ liệu để tải về!');
+                        return;
+                    }
+                    const wb = XLSX.utils.book_new();
+                    const headers = [
+                        "THỨ TỰ", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                        "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", "HOÀN THÀNH", "CHI NHÁNH"
+                    ];
+                    const exportData = [headers];
+                    data.forEach((item, index) => {
+                        exportData.push([
+                            item.order || (index + 1),
+                            item.proposer || '',
+                            item.department || '',
+                            item.date || '',
+                            item.code || '',
+                            item.proposal || '',
+                            item.content || '',
+                            item.supplier || '',
+                            item.estimated_cost || 0,
+                            item.approved_amount || 0,
+                            item.notes || '',
+                            item.completed || '',
+                            item.branch || ''
+                        ]);
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(exportData);
+                    XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu hiện có");
+                    XLSX.writeFile(wb, `DU_LIEU_HIEN_CO_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                })
+                .catch(error => {
+                    const errMsg = error.response?.data?.error || 'Unknown error';
+                    alert('Lỗi khi tải dữ liệu: ' + errMsg);
+                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                        localStorage.clear();
+                        showLoginForm();
+                    }
+                });
         }
 
         function exportSummaryReport(branchType) {
@@ -1201,26 +1324,56 @@
                         return;
                     }
                     const wb = XLSX.utils.book_new();
+
+                    // Sheet 1: Đề nghị thanh toán
                     const headers = [
-                        "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                        "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", 
-                        "HOÀN THÀNH", "CHI NHÁNH"
+                        "THỨ TỰ", "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                        "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", "HOÀN THÀNH", "CHI NHÁNH"
                     ];
                     const data = [headers];
                     filteredData.forEach((item, index) => {
                         data.push([
-                            index + 1, item.proposer || '', item.department || '', item.date || '',
-                            item.code || '', item.proposal || '', item.content || '', item.supplier || '',
-                            item.estimated_cost || 0, item.approved_amount || 0, item.notes || '',
-                            item.completed || '', item.branch || ''
+                            item.order || (index + 1),
+                            index + 1,
+                            item.proposer || '',
+                            item.department || '',
+                            item.date || '',
+                            item.code || '',
+                            item.proposal || '',
+                            item.content || '',
+                            item.supplier || '',
+                            item.estimated_cost || 0,
+                            item.approved_amount || 0,
+                            item.notes || '',
+                            item.completed || '',
+                            item.branch || ''
                         ]);
                     });
                     const totalEstimated = filteredData.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
                     const totalApproved = filteredData.reduce((sum, item) => sum + (item.approved_amount || 0), 0);
                     data.push([]);
-                    data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
-                    const ws = XLSX.utils.aoa_to_sheet(data);
-                    XLSX.utils.book_append_sheet(wb, ws, `Báo cáo ${branchType}`);
+                    data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
+                    const ws1 = XLSX.utils.aoa_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws1, "Đề nghị thanh toán");
+
+                    // Sheet 2: So sánh thanh toán
+                    const months = [...new Set(filteredData.map(item => item.date ? item.date.slice(0, 7) : ''))].sort();
+                    const comparisonHeaders = ["MÃ SỐ ĐỀ XUẤT", "NỘI DUNG", ...months.map(m => `THÁNG ${m.slice(5, 7)}/${m.slice(0, 4)}`)];
+                    const uniqueProposals = [...new Set(filteredData.map(item => item.proposal))];
+                    const comparisonData = [comparisonHeaders];
+                    uniqueProposals.forEach(proposal => {
+                        const row = [proposal, proposal];
+                        months.forEach(month => {
+                            const totalApproved = filteredData
+                                .filter(p => p.proposal === proposal && p.date && p.date.startsWith(month))
+                                .reduce((sum, p) => sum + (p.approved_amount || 0), 0);
+                            row.push(totalApproved);
+                        });
+                        comparisonData.push(row);
+                    });
+                    const ws2 = XLSX.utils.aoa_to_sheet(comparisonData);
+                    XLSX.utils.book_append_sheet(wb, ws2, "So sánh thanh toán");
+
                     XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
                 })
                 .catch(error => {
