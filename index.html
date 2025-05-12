@@ -1,27 +1,173 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
+    <!-- CSS files -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: url('https://images.unsplash.com/photo-1507521628349-dee6c896a2c8') no-repeat center center fixed;
+            background-size: cover;
+        }
+        .header-w3l {
+            margin: 2em 0 1em;
+            text-align: center;
+        }
+        .header-w3l h1 {
+            font-size: 3em;
+            color: #000;
+            letter-spacing: 1px;
+            font-weight: 300;
+            text-shadow: 0 1px 2px #000;
+            margin-bottom: 0.5em;
+        }
+        .main-w3layouts-agileinfo {
+            width: 30%;
+            margin: 0 auto;
+        }
+        .wthree-form {
+            background: rgba(0, 0, 0, 0.47);
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .wthree-form h2 {
+            font-size: 1.5em;
+            color: #000;
+            text-align: center;
+            margin-bottom: 1.5em;
+        }
+        .form-sub-w3 {
+            position: relative;
+            margin-bottom: 1.5em;
+        }
+        .form-sub-w3 input[type="text"],
+        .form-sub-w3 input[type="password"] {
+            outline: none;
+            font-size: 0.9em;
+            color: #fff;
+            padding: 0.8em 0.5em 0.8em 1em;
+            border: 1px solid #fff;
+            background: transparent;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+        .form-sub-w3 input[type="text"]::placeholder,
+        .form-sub-w3 input[type="password"]::placeholder {
+            color: #ccc;
+        }
+        .icon-w3 {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .icon-w3 i {
+            color: #fff;
+            font-size: 1em;
+        }
+        .submit-agileits {
+            text-align: center;
+        }
+        .submit-agileits input[type="submit"] {
+            outline: none;
+            color: #fff;
+            padding: 0.5em 2em;
+            font-size: 1em;
+            border: none;
+            background: #00c6d7;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: 0.5s all;
+        }
+        .submit-agileits input[type="submit"]:hover {
+            background: #007bff;
+        }
+        .footer {
+            text-align: center;
+            margin: 2em 0;
+        }
+        .footer p {
+            color: #fff;
+            font-size: 0.9em;
+        }
+        .footer a {
+            color: #00c6d7;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #fff;
+        }
+        .login-logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 200px;
+            height: auto;
+        }
+        .alert-danger {
+            background-color: rgba(255, 99, 71, 0.8);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 1em;
+            display: none;
+        }
+        .main-content {
+            font-family: Arial, sans-serif;
             padding-bottom: 50px;
         }
-        .login-container {
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-        }
         .header {
-            background-color: #f8f9fa;
+            background-color: #ffffff;
             padding: 15px 0;
             border-bottom: 1px solid #dee2e6;
             margin-bottom: 20px;
@@ -81,72 +227,91 @@
                 display: none;
             }
         }
+        tr.duplicate {
+            background-color: yellow !important;
+        }
+        .main-logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 200px;
+            height: auto;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
 </head>
 <body>
-    <!-- Login Modal -->
-    <div class="modal fade" id="loginModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="loginModalLabel">Đăng Nhập Hệ Thống</h5>
-                </div>
-                <div class="modal-body">
-                    <form id="loginForm">
-                        <div class="mb-3">
-                            <label for="role" class="form-label">Vai trò</label>
-                            <select class="form-select" id="role" required>
-                                <option value="" disabled selected>Chọn vai trò</option>
-                                <option value="admin">Admin</option>
-                                <option value="branch">Nhân sự chi nhánh</option>
-                            </select>
+    <!-- Login Form -->
+    <div id="loginFormContainer">
+        <div class="header-w3l">
+            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="login-logo">
+            <h1>ĐĂNG NHẬP HỆ THỐNG</h1>
+        </div>
+        <div class="main-w3layouts-agileinfo">
+            <div class="wthree-form">
+                <h2>THÔNG TIN ĐĂNG NHẬP</h2>
+                <form id="loginForm">
+                    <div class="form-sub-w3">
+                        <input type="text" id="username" name="Username" placeholder="Tên đăng nhập" required />
+                        <div class="icon-w3">
+                            <i class="fa fa-user" aria-hidden="true"></i>
                         </div>
-                        <div class="mb-3 branch-field hidden">
-                            <label for="branch" class="form-label">Chi nhánh</label>
-                            <select class="form-select" id="branch">
-                                <option value="" disabled selected>Chọn chi nhánh</option>
-                                <option value="XDV-THAODIEN">XDV-THAODIEN</option>
-                                <option value="XDV-THAINGUYEN">XDV-THAINGUYEN</option>
-                                <option value="XDV-QUAN12">XDV-QUAN12</option>
-                                <option value="XDV-QUAN7">XDV-QUAN7</option>
-                                <option value="XDV-NGHEAN">XDV-NGHEAN</option>
-                                <option value="XDV-KHANHHOA">XDV-KHANHHOA</option>
-                                <option value="XDV-HANOI">XDV-HANOI</option>
-                                <option value="XDV-DANANG">XDV-DANANG</option>
-                                <option value="XDV-CANTHO">XDV-CANTHO</option>
-                                <option value="PTT-TRANDUYHUNG">PTT-TRANDUYHUNG</option>
-                                <option value="PTT-THAODIEN">PTT-THAODIEN</option>
-                                <option value="PTT-QUAN12">PTT-QUAN12</option>
-                                <option value="PTT-QUAN7">PTT-QUAN7</option>
-                                <option value="PTT-NHATRANG">PTT-NHATRANG</option>
-                                <option value="PTT-NGOCHOI">PTT-NGOCHOI</option>
-                                <option value="PTT-NGHEAN">PTT-NGHEAN</option>
-                                <option value="PTT-LANDMARK81">PTT-LANDMARK81</option>
-                                <option value="PTT-KHANHHOA">PTT-KHANHHOA</option>
-                            </select>
+                    </div>
+                    <div class="form-sub-w3">
+                        <input type="password" id="password" name="Password" placeholder="Mật khẩu" required />
+                        <div class="icon-w3">
+                            <i class="fa fa-unlock-alt" aria-hidden="true"></i>
                         </div>
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Tên đăng nhập</label>
-                            <input type="text" class="form-control" id="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Mật khẩu</label>
-                            <input type="password" class="form-control" id="password" required>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Đăng nhập</button>
-                        </div>
-                    </form>
-                    <div class="alert alert-danger mt-3 hidden" id="loginError"></div>
-                </div>
+                    </div>
+                    <div class="alert alert-danger hidden" id="loginError"></div>
+                    <div class="submit-agileits">
+                        <input type="submit" value="Đăng nhập">
+                    </div>
+                </form>
             </div>
+        </div>
+        <div class="footer">
+            <p>© 2025 Hệ Thống Quản Lý Đề Xuất Mua Sắm</p>
         </div>
     </div>
 
-    <!-- Main Content (Hidden until login) -->
-    <div id="mainContent" class="container-fluid hidden">
-        <!-- Header -->
+    <!-- Main Content -->
+    <div id="mainContent" class="main-content hidden">
         <div class="header text-center">
+            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
             <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
             <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
             <div class="mt-2">
@@ -156,7 +321,6 @@
             </div>
         </div>
 
-        <!-- Control Panel -->
         <div class="row mb-4 no-print">
             <div class="col-md-8">
                 <div class="input-group">
@@ -175,128 +339,41 @@
             </div>
         </div>
 
-        <!-- Admin only buttons -->
-        <div class="row mb-4 admin-only hidden no-print">
-            <div class="col-12 text-end">
-                <button class="btn btn-primary" id="exportXDVBtn">Xuất báo cáo XDV</button>
-                <button class="btn btn-primary ms-2" id="exportPTTBtn">Xuất báo cáo PTT</button>
-            </div>
-        </div>
-
-        <!-- Table -->
         <div class="table-responsive">
             <table class="table table-striped table-hover" id="proposalsTable">
                 <thead class="table-dark">
                     <tr>
-                        <th data-sort="STT">STT <span class="sort-icon"></span></th>
-                        <th data-sort="NGƯỜI ĐỀ NGHỊ">Người đề nghị <span class="sort-icon"></span></th>
-                        <th data-sort="BỘ PHẬN">Bộ phận <span class="sort-icon"></span></th>
-                        <th data-sort="NGÀY THÁNG">Ngày tháng <span class="sort-icon"></span></th>
-                        <th data-sort="MÃ SỐ ĐỀ XUẤT">Mã số đề xuất <span class="sort-icon"></span></th>
-                        <th data-sort="ĐỀ XUẤT">Đề xuất <span class="sort-icon"></span></th>
-                        <th data-sort="NỘI DUNG">Nội dung <span class="sort-icon"></span></th>
-                        <th data-sort="NHÀ CUNG CẤP">Nhà cung cấp <span class="sort-icon"></span></th>
-                        <th data-sort="DỰ TÍNH">Dự tính <span class="sort-icon"></span></th>
-                        <th data-sort="SỐ TIỀN ĐƯỢC DUYỆT">Số tiền được duyệt <span class="sort-icon"></span></th>
-                        <th data-sort="GHI CHÚ">Ghi chú <span class="sort-icon"></span></th>
-                        <th data-sort="HOÀN THÀNH">Hoàn thành <span class="sort-icon"></span></th>
-                        <th data-sort="CHI NHÁNH">Chi nhánh <span class="sort-icon"></span></th>
+                        <th data-sort="id">STT <span class="sort-icon"></span></th>
+                        <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
+                        <th data-sort="room">Phòng ban <span class="sort-icon"></span></th>
+                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
+                        <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
+                        <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
+                        <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
+                        <th data-sort="proposal">Đề xuất <span class="sort-icon"></span></th>
+                        <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
+                        <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
+                        <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
+                        <th data-sort="estimated_cost">Dự tính <span class="sort-icon"></span></th>
+                        <th data-sort="budget">Ngân sách <span class="sort-icon"></span></th>
+                        <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
+                        <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
+                        <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
+                        <th data-sort="status">Trạng thái <span class="sort-icon"></span></th>
+                        <th data-sort="approver">Người duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="approval_date">Ngày duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
                         <th class="no-print">Hành động</th>
                     </tr>
                 </thead>
-                <tbody id="proposalsTableBody">
-                    <!-- Data will be filled by JavaScript -->
-                </tbody>
+                <tbody id="proposalsTableBody"></tbody>
             </table>
         </div>
 
-        <!-- Pagination -->
         <div class="pagination-container no-print" id="pagination"></div>
     </div>
 
-    <!-- Edit Modal -->
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editForm">
-                        <input type="hidden" id="editRowIndex">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editProposer" class="form-label">Người đề nghị <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editProposer" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editDepartment" class="form-label">Bộ phận <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editDepartment" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editDate" class="form-label">Ngày tháng <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="editDate" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editCode" class="form-label">Mã số đề xuất</label>
-                                <input type="text" class="form-control" id="editCode">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editProposal" class="form-label">Đề xuất <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="editProposal" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editSupplier" class="form-label">Nhà cung cấp</label>
-                                <input type="text" class="form-control" id="editSupplier">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editContent" class="form-label">Nội dung <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="editContent" rows="3" required></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editEstimatedCost" class="form-label">Dự tính</label>
-                                <input type="number" class="form-control" id="editEstimatedCost">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editApprovedAmount" class="form-label">Số tiền được duyệt</label>
-                                <input type="number" class="form-control" id="editApprovedAmount">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editNotes" class="form-label">Ghi chú</label>
-                                <input type="text" class="form-control" id="editNotes">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editCompleted" class="form-label">Hoàn thành</label>
-                                <select class="form-select" id="editCompleted">
-                                    <option value="">Chưa hoàn thành</option>
-                                    <option value="X">Đã hoàn thành</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editBranch" class="form-label">Chi nhánh <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="editBranch" readonly>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu thay đổi</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Upload Modal -->
     <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -326,7 +403,6 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -346,397 +422,420 @@
         </div>
     </div>
 
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editProposalId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Người đề nghị</label>
+                                <input type="text" class="form-control" id="editProposer" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phòng ban</label>
+                                <input type="text" class="form-control" id="editRoom">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Chi nhánh</label>
+                                <input type="text" class="form-control" id="editBranch" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bộ phận</label>
+                                <input type="text" class="form-control" id="editDepartment" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày tháng</label>
+                                <input type="text" class="form-control" id="editDate" placeholder="DD/MM/YYYY" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mã số đề xuất</label>
+                                <input type="text" class="form-control" id="editCode">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Đề xuất</label>
+                                <input type="text" class="form-control" id="editProposal" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nội dung</label>
+                                <input type="text" class="form-control" id="editContent" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mục đích</label>
+                                <input type="text" class="form-control" id="editPurpose">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nhà cung cấp</label>
+                                <input type="text" class="form-control" id="editSupplier">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dự tính</label>
+                                <input type="number" class="form-control" id="editEstimatedCost">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngân sách</label>
+                                <input type="number" class="form-control" id="editBudget">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số tiền được duyệt</label>
+                                <input type="number" class="form-control" id="editApprovedAmount">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mã chuyển khoản</label>
+                                <input type="text" class="form-control" id="editTransferCode">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày thanh toán</label>
+                                <input type="text" class="form-control" id="editPaymentDate" placeholder="DD/MM/YYYY">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" id="editNotes">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Trạng thái</label>
+                                <input type="text" class="form-control" id="editStatus">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Người duyệt</label>
+                                <input type="text" class="form-control" id="editApprover">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày duyệt</label>
+                                <input type="text" class="form-control" id="editApprovalDate" placeholder="DD/MM/YYYY">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Hoàn thành</label>
+                                <input type="text" class="form-control" id="editCompleted">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Sample data
-        const initialData = [
-            {
-                "STT": 1,
-                "NGƯỜI ĐỀ NGHỊ": "ĐẶNG LÊ THANH",
-                "BỘ PHẬN": "KD",
-                "NGÀY THÁNG": "2025-04-15",
-                "MÃ SỐ ĐỀ XUẤT": "01-PTTHN",
-                "ĐỀ XUẤT": "Mua laptop",
-                "NỘI DUNG": "Thay đổi laptop phục vụ công việc",
-                "NHÀ CUNG CẤP": "",
-                "DỰ TÍNH": 12000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 10000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "PTT-TRANDUYHUNG"
-            },
-            {
-                "STT": 2,
-                "NGƯỜI ĐỀ NGHỊ": "NGUYỄN VĂN A",
-                "BỘ PHẬN": "KD",
-                "NGÀY THÁNG": "2025-04-16",
-                "MÃ SỐ ĐỀ XUẤT": "02-PTTHN",
-                "ĐỀ XUẤT": "Mua laptop",
-                "NỘI DUNG": "Mua laptop cho giám đốc",
-                "NHÀ CUNG CẤP": "",
-                "DỰ TÍNH": 5000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 5000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "PTT-NGOCHOI"
-            },
-            {
-                "STT": 3,
-                "NGƯỜI ĐỀ NGHỊ": "TRẦN THỊ B",
-                "BỘ PHẬN": "HCNS",
-                "NGÀY THÁNG": "2025-04-20",
-                "MÃ SỐ ĐỀ XUẤT": "03-XDVTD",
-                "ĐỀ XUẤT": "Mua máy in",
-                "NỘI DUNG": "Mua máy in phục vụ văn phòng",
-                "NHÀ CUNG CẤP": "Văn phòng phẩm ABC",
-                "DỰ TÍNH": 3000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 3000000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "X",
-                "CHI NHÁNH": "XDV-THAODIEN"
-            },
-            {
-                "STT": 4,
-                "NGƯỜI ĐỀ NGHỊ": "LÊ VĂN C",
-                "BỘ PHẬN": "KT",
-                "NGÀY THÁNG": "2025-04-25",
-                "MÃ SỐ ĐỀ XUẤT": "04-XDVHN",
-                "ĐỀ XUẤT": "Mua ghế văn phòng",
-                "NỘI DUNG": "Thay thế ghế bị hỏng",
-                "NHÀ CUNG CẤP": "Nội thất XYZ",
-                "DỰ TÍNH": 2000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 1800000,
-                "GHI CHÚ": "Giảm giá 10%",
-                "HOÀN THÀNH": "",
-                "CHI NHÁNH": "XDV-HANOI"
-            },
-            {
-                "STT": 5,
-                "NGƯỜI ĐỀ NGHỊ": "PHẠM THỊ D",
-                "BỘ PHẬN": "MKT",
-                "NGÀY THÁNG": "2025-05-05",
-                "MÃ SỐ ĐỀ XUẤT": "05-PTTQ7",
-                "ĐỀ XUẤT": "Thiết bị quảng cáo",
-                "NỘI DUNG": "Mua thiết bị quảng cáo cho sự kiện tháng 5",
-                "NHÀ CUNG CẤP": "Media Solutions",
-                "DỰ TÍNH": 8000000,
-                "GĐCN PHÊ DUYỆT": "OK",
-                "TP.HCNS PHÊ DUYỆT": "OK",
-                "SỐ TIỀN ĐƯỢC DUYỆT": 7500000,
-                "GHI CHÚ": "",
-                "HOÀN THÀNH": "",
-                "CHI NHÁNH": "PTT-QUAN7"
-            }
-        ];
-
-        // User credentials and authentication
-        const users = {
-            admin: { username: "admin", password: "admin123", role: "admin" },
-            // Branch managers will be generated dynamically
-        };
-
-        // Current user info
+        const API_URL = 'https://de-xuat-ea0h.onrender.com/api';
         let currentUser = null;
-        let proposals = [...initialData];
-        let filteredProposals = [...proposals];
+        let proposals = [];
+        let filteredProposals = [];
         let currentPage = 1;
         const itemsPerPage = 10;
+        let currentSortColumn = '';
+        let currentSortDirection = 'asc';
 
-        // Generate branch manager accounts
-        const branches = [
-            "XDV-THAODIEN", "XDV-THAINGUYEN", "XDV-QUAN12", "XDV-QUAN7", 
-            "XDV-NGHEAN", "XDV-KHANHHOA", "XDV-HANOI", "XDV-DANANG", 
-            "XDV-CANTHO", "PTT-TRANDUYHUNG", "PTT-THAODIEN", "PTT-QUAN12", 
-            "PTT-QUAN7", "PTT-NHATRANG", "PTT-NGOCHOI", "PTT-NGHEAN", 
-            "PTT-LANDMARK81", "PTT-KHANHHOA"
-        ];
-
-        function generateBranchUsers() {
-            branches.forEach(branch => {
-                const branchLower = branch.toLowerCase().replace("-", "_");
-                users[`${branchLower}_manager1`] = {
-                    username: `${branchLower}_manager1`,
-                    password: "manager123",
-                    role: "branch",
-                    branch: branch
-                };
-                users[`${branchLower}_manager2`] = {
-                    username: `${branchLower}_manager2`,
-                    password: "manager123",
-                    role: "branch",
-                    branch: branch
-                };
-            });
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            }
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                return dateStr;
+            }
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return '';
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            } catch {
+                return '';
+            }
         }
 
-        // Initialize the application
+        function formatDateToYYYYMMDD(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const [day, month, year] = dateStr.split('/');
+                return `${year}-${month}-${day}`;
+            }
+            return dateStr;
+        }
+
+        async function checkTokenValidity() {
+            const token = localStorage.getItem('token');
+            if (!token) return false;
+            try {
+                await axios.get(`${API_URL}/proposals`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                return true;
+            } catch (error) {
+                const errMsg = error.response?.data?.message || 'Unknown error';
+                if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                    localStorage.clear();
+                    currentUser = null;
+                    showLoginForm();
+                    alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                }
+                return false;
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            generateBranchUsers();
-            showLoginModal();
+            const token = localStorage.getItem('token');
+            if (token) {
+                validateToken(token);
+            } else {
+                showLoginForm();
+            }
             initEventListeners();
-            
-            // Force login modal to show on page load
-            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-            loginModal.show();
         });
 
-        function showLoginModal() {
+        function validateToken(token) {
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const userData = {
+                        username: localStorage.getItem('username'),
+                        branch: localStorage.getItem('branch')
+                    };
+                    if (!userData.username) {
+                        throw new Error('Thông tin người dùng không đầy đủ trong localStorage');
+                    }
+                    currentUser = userData;
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
+                    document.getElementById('userBranch').textContent = `Chi nhánh: ${currentUser.branch}`;
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi xác thực token:', error.message);
+                    localStorage.clear();
+                    showLoginForm();
+                    alert(error.response?.data?.message || 'Lỗi xác thực token');
+                });
+        }
+
+        function showLoginForm() {
             document.getElementById('mainContent').classList.add('hidden');
-            document.getElementById('loginForm').reset();
-            document.getElementById('loginError').classList.add('hidden');
-            
-            // Role change handler
-            document.getElementById('role').addEventListener('change', function() {
-                const branchFields = document.querySelectorAll('.branch-field');
-                if (this.value === 'branch') {
-                    branchFields.forEach(field => field.classList.remove('hidden'));
-                } else {
-                    branchFields.forEach(field => field.classList.add('hidden'));
-                }
-            });
+            document.getElementById('loginFormContainer').classList.remove('hidden');
+            document.getElementById('loginForm')?.reset();
+            document.getElementById('loginError')?.classList.add('hidden');
         }
 
         function initEventListeners() {
-            // Login form submission
-            document.getElementById('loginForm').addEventListener('submit', function(e) {
+            document.getElementById('loginForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 handleLogin();
             });
 
-            // Logout button
-            document.getElementById('logoutBtn').addEventListener('click', function() {
+            document.getElementById('logoutBtn')?.addEventListener('click', function() {
+                localStorage.clear();
                 currentUser = null;
-                showLoginModal();
-                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                loginModal.show();
+                showLoginForm();
             });
 
-            // Search functionality
-            document.getElementById('searchBtn').addEventListener('click', function() {
-                applySearch();
-            });
+            document.getElementById('searchBtn')?.addEventListener('click', applySearch);
 
-            document.getElementById('clearSearchBtn').addEventListener('click', function() {
+            document.getElementById('clearSearchBtn')?.addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
                 applySearch();
             });
 
-            // Sort functionality
             document.querySelectorAll('th[data-sort]').forEach(th => {
                 th.addEventListener('click', function() {
                     sortTable(this.getAttribute('data-sort'));
                 });
             });
 
-            // Excel file upload
-            document.getElementById('confirmUploadBtn').addEventListener('click', function() {
-                handleExcelUpload();
-            });
+            document.getElementById('confirmUploadBtn')?.addEventListener('click', handleExcelUpload);
 
-            // Edit modal save changes
-            document.getElementById('saveEditBtn').addEventListener('click', function() {
-                saveEditChanges();
-            });
+            document.getElementById('downloadTemplateBtn')?.addEventListener('click', downloadExcelTemplate);
 
-            // Download template
-            document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
-                downloadExcelTemplate();
-            });
-
-            // Export summary reports
-            document.getElementById('exportXDVBtn').addEventListener('click', function() {
-                exportSummaryReport('XDV');
-            });
-
-            document.getElementById('exportPTTBtn').addEventListener('click', function() {
-                exportSummaryReport('PTT');
-            });
-
-            // Delete confirmation
-            document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-                const rowIndex = parseInt(this.getAttribute('data-index'));
-                if (!isNaN(rowIndex)) {
-                    deleteProposal(rowIndex);
+            document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
+                const proposalId = parseInt(this.getAttribute('data-id'));
+                if (!isNaN(proposalId)) {
+                    deleteProposal(proposalId);
                 }
+            });
+
+            document.getElementById('saveEditBtn')?.addEventListener('click', function() {
+                saveEditChanges(bootstrap.Modal.getInstance(document.getElementById('editModal')));
             });
         }
 
         function handleLogin() {
-            const role = document.getElementById('role').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            let branch = null;
-            
-            if (role === 'branch') {
-                branch = document.getElementById('branch').value;
-            }
-
-            // Validate credentials
-            const user = users[username];
-            if (user && user.password === password && user.role === role) {
-                // Successful login
-                currentUser = {
-                    username: username,
-                    role: role,
-                    branch: role === 'branch' ? user.branch : null
-                };
-
-                // For branch users, validate selected branch matches user's branch
-                if (role === 'branch' && user.branch !== branch) {
-                    showLoginError(`Người dùng ${username} không thuộc chi nhánh ${branch}!`);
-                    return;
-                }
-
-                // Hide login modal and show main content
-                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                loginModal.hide();
-                document.getElementById('mainContent').classList.remove('hidden');
-
-                // Update user info display
-                document.getElementById('userName').textContent = `Người dùng: ${username}`;
-                document.getElementById('userBranch').textContent = role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${user.branch}`;
-
-                // Show/hide admin-only elements
-                const adminOnlyElements = document.querySelectorAll('.admin-only');
-                if (role === 'admin') {
-                    adminOnlyElements.forEach(el => el.classList.remove('hidden'));
-                } else {
-                    adminOnlyElements.forEach(el => el.classList.add('hidden'));
-                }
-
-                // Load data based on user role
-                loadProposalData();
-            } else {
-                // Failed login
-                if (role === 'branch') {
-                    const branchLower = branch ? branch.toLowerCase().replace('-', '_') : '';
-                    showLoginError(`Tên đăng nhập hoặc mật khẩu không đúng cho chi nhánh ${branch}! Tên đăng nhập mẫu: ${branchLower}_manager1`);
-                } else {
-                    showLoginError('Tên đăng nhập hoặc mật khẩu không đúng!');
-                }
-            }
+            axios.post(`${API_URL}/login`, { username, password })
+                .then(response => {
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('branch', response.data.branch);
+                    currentUser = {
+                        username: username,
+                        branch: response.data.branch
+                    };
+                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${username}`;
+                    document.getElementById('userBranch').textContent = `Chi nhánh: ${currentUser.branch}`;
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi đăng nhập:', error.message);
+                    showLoginError(error.response?.data?.message || 'Lỗi đăng nhập!');
+                });
         }
 
         function showLoginError(message) {
             const errorElement = document.getElementById('loginError');
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+            }
         }
 
         function loadProposalData() {
-            // Filter proposals based on user role
-            if (currentUser.role === 'admin') {
-                filteredProposals = [...proposals];
-            } else {
-                filteredProposals = proposals.filter(p => p["CHI NHÁNH"] === currentUser.branch);
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showLoginForm();
+                return;
             }
-            
-            sortData(); // Apply current sort
-            renderTable();
-            renderPagination();
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    proposals = response.data;
+                    filteredProposals = [...proposals];
+                    sortData();
+                    renderTable();
+                    renderPagination();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải dữ liệu:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else {
+                        errMsg = error.message;
+                    }
+                    alert(`Lỗi khi tải dữ liệu: ${errMsg}`);
+                });
         }
 
         function renderTable() {
             const tableBody = document.getElementById('proposalsTableBody');
+            if (!tableBody) return;
+
             tableBody.innerHTML = '';
-            
-            // Calculate start and end indices for pagination
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = Math.min(startIndex + itemsPerPage, filteredProposals.length);
-            
-            // Get current page data
             const currentPageData = filteredProposals.slice(startIndex, endIndex);
-            
+
             if (currentPageData.length === 0) {
-                const noDataRow = document.createElement('tr');
-                noDataRow.innerHTML = `<td colspan="14" class="text-center">Không có dữ liệu</td>`;
-                tableBody.appendChild(noDataRow);
+                tableBody.innerHTML = `<tr><td colspan="22" class="text-center">Không có dữ liệu</td></tr>`;
                 return;
             }
-            
-            // Populate table with data
-            currentPageData.forEach((proposal, index) => {
-                const realIndex = startIndex + index; // Index in the filtered array
-                const row = document.createElement('tr');
-                
-                // Format date for display
-                let displayDate = proposal["NGÀY THÁNG"];
-                if (displayDate) {
-                    const dateObj = new Date(displayDate);
-                    if (!isNaN(dateObj.getTime())) {
-                        displayDate = dateObj.toLocaleDateString('vi-VN');
-                    }
+
+            const codeBranchMap = new Map();
+            proposals.forEach(proposal => {
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                if (!codeBranchMap.has(key)) {
+                    codeBranchMap.set(key, []);
                 }
-                
-                // Format currency for display
-                const formatCurrency = (value) => {
-                    if (value === undefined || value === null || value === '') return '';
-                    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-                };
-                
+                codeBranchMap.get(key).push(proposal);
+            });
+
+            currentPageData.forEach((proposal, index) => {
+                const row = document.createElement('tr');
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                const isDuplicate = codeBranchMap.get(key).length > 1;
+                if (isDuplicate) {
+                    row.classList.add('duplicate');
+                }
+
+                const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
                 row.innerHTML = `
-                    <td>${proposal["STT"]}</td>
-                    <td>${sanitizeHTML(proposal["NGƯỜI ĐỀ NGHỊ"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["BỘ PHẬN"] || '')}</td>
-                    <td>${displayDate || ''}</td>
-                    <td>${sanitizeHTML(proposal["MÃ SỐ ĐỀ XUẤT"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["ĐỀ XUẤT"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["NỘI DUNG"] || '')}</td>
-                    <td>${sanitizeHTML(proposal["NHÀ CUNG CẤP"] || '')}</td>
-                    <td>${formatCurrency(proposal["DỰ TÍNH"])}</td>
-                    <td>${formatCurrency(proposal["SỐ TIỀN ĐƯỢC DUYỆT"])}</td>
-                    <td>${sanitizeHTML(proposal["GHI CHÚ"] || '')}</td>
-                    <td>${proposal["HOÀN THÀNH"] ? 'X' : ''}</td>
-                    <td>${sanitizeHTML(proposal["CHI NHÁNH"] || '')}</td>
+                    <td>${proposal.id}</td>
+                    <td>${sanitizeHTML(proposal.proposer || '')}</td>
+                    <td>${sanitizeHTML(proposal.room || '')}</td>
+                    <td>${sanitizeHTML(proposal.branch || '')}</td>
+                    <td>${sanitizeHTML(proposal.department || '')}</td>
+                    <td>${formatDateToDDMMYYYY(proposal.date)}</td>
+                    <td>${sanitizeHTML(proposal.code || '')}</td>
+                    <td>${sanitizeHTML(proposal.proposal || '')}</td>
+                    <td>${sanitizeHTML(proposal.content || '')}</td>
+                    <td>${sanitizeHTML(proposal.purpose || '')}</td>
+                    <td>${sanitizeHTML(proposal.supplier || '')}</td>
+                    <td>${formatCurrency(proposal.estimated_cost)}</td>
+                    <td>${formatCurrency(proposal.budget)}</td>
+                    <td>${formatCurrency(proposal.approved_amount)}</td>
+                    <td>${sanitizeHTML(proposal.transfer_code || '')}</td>
+                    <td>${formatDateToDDMMYYYY(proposal.payment_date)}</td>
+                    <td>${sanitizeHTML(proposal.notes || '')}</td>
+                    <td>${sanitizeHTML(proposal.status || '')}</td>
+                    <td>${sanitizeHTML(proposal.approver || '')}</td>
+                    <td>${formatDateToDDMMYYYY(proposal.approval_date)}</td>
+                    <td>${sanitizeHTML(proposal.completed || '')}</td>
                     <td class="no-print">
-                        <button class="btn btn-primary btn-sm edit-btn" data-index="${realIndex}" aria-label="Edit proposal details">
+                        <button class="btn btn-primary btn-sm edit-btn" data-id="${proposal.id}" aria-label="Edit proposal details">
                             <i class="bi bi-pencil"></i> Sửa
                         </button>
-                        <button class="btn btn-danger btn-sm delete-btn ms-1" data-index="${realIndex}" aria-label="Delete proposal">
+                        <button class="btn btn-danger btn-sm delete-btn ms-1" data-id="${proposal.id}" aria-label="Delete proposal">
                             <i class="bi bi-trash"></i> Xóa
                         </button>
                     </td>
                 `;
-                
                 tableBody.appendChild(row);
-                
-                // Add event listeners to buttons
-                const editBtn = row.querySelector('.edit-btn');
-                const deleteBtn = row.querySelector('.delete-btn');
-                
-                editBtn.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    openEditModal(index);
-                });
-                
-                deleteBtn.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    openDeleteModal(index);
-                });
+
+                row.querySelector('.edit-btn')?.addEventListener('click', () => openEditModal(proposal.id));
+                row.querySelector('.delete-btn')?.addEventListener('click', () => openDeleteModal(proposal.id));
             });
         }
 
         function renderPagination() {
             const paginationContainer = document.getElementById('pagination');
+            if (!paginationContainer) return;
+
             paginationContainer.innerHTML = '';
-            
             const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
-            
+
             if (totalPages <= 1) return;
-            
-            // Previous button
+
             const prevButton = document.createElement('button');
             prevButton.classList.add('pagination-button');
-            prevButton.innerHTML = '&laquo;';
+            prevButton.innerHTML = '«';
             prevButton.disabled = currentPage === 1;
-            prevButton.addEventListener('click', function() {
+            prevButton.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     renderTable();
@@ -744,27 +843,25 @@
                 }
             });
             paginationContainer.appendChild(prevButton);
-            
-            // Page buttons
+
             for (let i = 1; i <= totalPages; i++) {
                 const pageButton = document.createElement('button');
                 pageButton.classList.add('pagination-button');
                 if (i === currentPage) pageButton.classList.add('active');
                 pageButton.textContent = i;
-                pageButton.addEventListener('click', function() {
+                pageButton.addEventListener('click', () => {
                     currentPage = i;
                     renderTable();
                     renderPagination();
                 });
                 paginationContainer.appendChild(pageButton);
             }
-            
-            // Next button
+
             const nextButton = document.createElement('button');
             nextButton.classList.add('pagination-button');
-            nextButton.innerHTML = '&raquo;';
+            nextButton.innerHTML = '»';
             nextButton.disabled = currentPage === totalPages;
-            nextButton.addEventListener('click', function() {
+            nextButton.addEventListener('click', () => {
                 if (currentPage < totalPages) {
                     currentPage++;
                     renderTable();
@@ -775,53 +872,33 @@
         }
 
         function applySearch() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (searchTerm.trim() === '') {
-                // Reset to show all data (based on user role)
-                loadProposalData();
-                return;
-            }
-            
-            // Filter the data based on user role first
-            let baseData = [];
-            if (currentUser.role === 'admin') {
-                baseData = [...proposals];
-            } else {
-                baseData = proposals.filter(p => p["CHI NHÁNH"] === currentUser.branch);
-            }
-            
-            // Then apply search filter
-            filteredProposals = baseData.filter(proposal => {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+
+            const searchTerm = searchInput.value.toLowerCase();
+            filteredProposals = proposals.filter(proposal => {
                 return (
-                    (proposal["NGƯỜI ĐỀ NGHỊ"] || '').toLowerCase().includes(searchTerm) ||
-                    (proposal["NỘI DUNG"] || '').toLowerCase().includes(searchTerm) ||
-                    (proposal["ĐỀ XUẤT"] || '').toLowerCase().includes(searchTerm)
+                    (proposal.proposer || '').toLowerCase().includes(searchTerm) ||
+                    (proposal.content || '').toLowerCase().includes(searchTerm) ||
+                    (proposal.proposal || '').toLowerCase().includes(searchTerm)
                 );
             });
-            
-            currentPage = 1; // Reset to first page
+            currentPage = 1;
             renderTable();
             renderPagination();
         }
 
-        let currentSortColumn = '';
-        let currentSortDirection = 'asc';
-
         function sortTable(column) {
-            // Toggle sort direction if clicking the same column
             if (currentSortColumn === column) {
                 currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSortColumn = column;
                 currentSortDirection = 'asc';
             }
-            
-            // Update sort icons
+
             document.querySelectorAll('th[data-sort] .sort-icon').forEach(icon => {
                 icon.className = 'sort-icon';
             });
-            
             const currentIcon = document.querySelector(`th[data-sort="${column}"] .sort-icon`);
             if (currentIcon) {
                 if (currentSortDirection === 'asc') {
@@ -830,44 +907,31 @@
                     currentIcon.classList.remove('asc');
                 }
             }
-            
+
             sortData();
             renderTable();
         }
 
         function sortData() {
             if (!currentSortColumn) return;
-            
+
             filteredProposals.sort((a, b) => {
                 let valueA = a[currentSortColumn];
                 let valueB = b[currentSortColumn];
-                
-                // Handle different data types for sorting
+
                 if (typeof valueA === 'string' && typeof valueB === 'string') {
                     valueA = valueA.toLowerCase();
                     valueB = valueB.toLowerCase();
                 }
-                
-                // Handle dates
-                if (currentSortColumn === "NGÀY THÁNG") {
-                    valueA = new Date(valueA);
-                    valueB = new Date(valueB);
+
+                if (['date', 'payment_date', 'approval_date'].includes(currentSortColumn)) {
+                    valueA = valueA ? new Date(formatDateToYYYYMMDD(valueA)) : '';
+                    valueB = valueB ? new Date(formatDateToYYYYMMDD(valueB)) : '';
                 }
-                
-                // Convert empty values to comparable values
-                if (valueA === undefined || valueA === null || valueA === '') {
-                    if (typeof valueB === 'number') valueA = 0;
-                    else if (valueB instanceof Date) valueA = new Date(0);
-                    else valueA = '';
-                }
-                
-                if (valueB === undefined || valueB === null || valueB === '') {
-                    if (typeof valueA === 'number') valueB = 0;
-                    else if (valueA instanceof Date) valueB = new Date(0);
-                    else valueB = '';
-                }
-                
-                // Compare based on direction
+
+                valueA = valueA === undefined || valueA === null || valueA === '' ? '' : valueA;
+                valueB = valueB === undefined || valueB === null || valueB === '' ? '' : valueB;
+
                 if (currentSortDirection === 'asc') {
                     return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
                 } else {
@@ -876,356 +940,296 @@
             });
         }
 
-        function openEditModal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Check if user can edit this proposal
-            if (currentUser.role !== 'admin' && proposal["CHI NHÁNH"] !== currentUser.branch) {
-                alert(`Bạn không có quyền chỉnh sửa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-                return;
-            }
-            
-            // Format date for input field (YYYY-MM-DD)
-            let formattedDate = '';
-            if (proposal["NGÀY THÁNG"]) {
-                const date = new Date(proposal["NGÀY THÁNG"]);
-                if (!isNaN(date.getTime())) {
-                    formattedDate = date.toISOString().split('T')[0];
-                }
-            }
-            
-            // Set values to form fields
-            document.getElementById('editRowIndex').value = index;
-            document.getElementById('editProposer').value = proposal["NGƯỜI ĐỀ NGHỊ"] || '';
-            document.getElementById('editDepartment').value = proposal["BỘ PHẬN"] || '';
-            document.getElementById('editDate').value = formattedDate;
-            document.getElementById('editCode').value = proposal["MÃ SỐ ĐỀ XUẤT"] || '';
-            document.getElementById('editProposal').value = proposal["ĐỀ XUẤT"] || '';
-            document.getElementById('editContent').value = proposal["NỘI DUNG"] || '';
-            document.getElementById('editSupplier').value = proposal["NHÀ CUNG CẤP"] || '';
-            document.getElementById('editEstimatedCost').value = proposal["DỰ TÍNH"] || '';
-            document.getElementById('editApprovedAmount').value = proposal["SỐ TIỀN ĐƯỢC DUYỆT"] || '';
-            document.getElementById('editNotes').value = proposal["GHI CHÚ"] || '';
-            document.getElementById('editCompleted').value = proposal["HOÀN THÀNH"] ? 'X' : '';
-            document.getElementById('editBranch').value = proposal["CHI NHÁNH"] || '';
-            
-            // Show the modal
-            const editModal = new bootstrap.Modal(document.getElementById('editModal'));
-            editModal.show();
+        function openEditModal(proposalId) {
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    document.getElementById('editProposalId').value = proposal.id;
+                    document.getElementById('editProposer').value = proposal.proposer || '';
+                    document.getElementById('editRoom').value = proposal.room || '';
+                    document.getElementById('editBranch').value = proposal.branch || '';
+                    document.getElementById('editDepartment').value = proposal.department || '';
+                    document.getElementById('editDate').value = formatDateToDDMMYYYY(proposal.date) || '';
+                    document.getElementById('editCode').value = proposal.code || '';
+                    document.getElementById('editProposal').value = proposal.proposal || '';
+                    document.getElementById('editContent').value = proposal.content || '';
+                    document.getElementById('editPurpose').value = proposal.purpose || '';
+                    document.getElementById('editSupplier').value = proposal.supplier || '';
+                    document.getElementById('editEstimatedCost').value = proposal.estimated_cost || 0;
+                    document.getElementById('editBudget').value = proposal.budget || 0;
+                    document.getElementById('editApprovedAmount').value = proposal.approved_amount || 0;
+                    document.getElementById('editTransferCode').value = proposal.transfer_code || '';
+                    document.getElementById('editPaymentDate').value = formatDateToDDMMYYYY(proposal.payment_date) || '';
+                    document.getElementById('editNotes').value = proposal.notes || '';
+                    document.getElementById('editStatus').value = proposal.status || '';
+                    document.getElementById('editApprover').value = proposal.approver || '';
+                    document.getElementById('editApprovalDate').value = formatDateToDDMMYYYY(proposal.approval_date) || '';
+                    document.getElementById('editCompleted').value = proposal.completed || '';
+                    new bootstrap.Modal(document.getElementById('editModal')).show();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+                });
         }
 
-        function saveEditChanges() {
+        function saveEditChanges(modal) {
             const form = document.getElementById('editForm');
-            if (!form.checkValidity()) {
-                // Trigger browser validation
+            if (!form || !form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
-            
-            const index = parseInt(document.getElementById('editRowIndex').value);
-            const proposal = filteredProposals[index];
-            
-            // Update proposal with new values
-            proposal["NGƯỜI ĐỀ NGHỊ"] = document.getElementById('editProposer').value;
-            proposal["BỘ PHẬN"] = document.getElementById('editDepartment').value;
-            proposal["NGÀY THÁNG"] = document.getElementById('editDate').value;
-            proposal["MÃ SỐ ĐỀ XUẤT"] = document.getElementById('editCode').value;
-            proposal["ĐỀ XUẤT"] = document.getElementById('editProposal').value;
-            proposal["NỘI DUNG"] = document.getElementById('editContent').value;
-            proposal["NHÀ CUNG CẤP"] = document.getElementById('editSupplier').value;
-            proposal["DỰ TÍNH"] = parseFloat(document.getElementById('editEstimatedCost').value) || 0;
-            proposal["SỐ TIỀN ĐƯỢC DUYỆT"] = parseFloat(document.getElementById('editApprovedAmount').value) || 0;
-            proposal["GHI CHÚ"] = document.getElementById('editNotes').value;
-            proposal["HOÀN THÀNH"] = document.getElementById('editCompleted').value;
-            
-            // Find the index in the main proposals array
-            const mainIndex = proposals.findIndex(p => 
-                p["STT"] === proposal["STT"] && 
-                p["CHI NHÁNH"] === proposal["CHI NHÁNH"]
-            );
-            
-            if (mainIndex !== -1) {
-                // Update the main array
-                proposals[mainIndex] = {...proposal};
-            }
-            
-            // Hide the modal
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-            editModal.hide();
-            
-            // Show success message
-            alert(`Đã cập nhật đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}! Bảng tổng hợp đã được cập nhật.`);
-            
-            // Refresh the table
-            renderTable();
+
+            const proposalId = parseInt(document.getElementById('editProposalId').value);
+            const updatedProposal = {
+                proposer: document.getElementById('editProposer').value,
+                room: document.getElementById('editRoom').value,
+                department: document.getElementById('editDepartment').value,
+                date: document.getElementById('editDate').value,
+                code: document.getElementById('editCode').value,
+                proposal: document.getElementById('editProposal').value,
+                content: document.getElementById('editContent').value,
+                purpose: document.getElementById('editPurpose').value,
+                supplier: document.getElementById('editSupplier').value,
+                estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
+                budget: parseFloat(document.getElementById('editBudget').value) || 0,
+                approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || 0,
+                transfer_code: document.getElementById('editTransferCode').value,
+                payment_date: document.getElementById('editPaymentDate').value,
+                notes: document.getElementById('editNotes').value,
+                status: document.getElementById('editStatus').value,
+                approver: document.getElementById('editApprover').value,
+                approval_date: document.getElementById('editApprovalDate').value,
+                completed: document.getElementById('editCompleted').value
+            };
+
+            const token = localStorage.getItem('token');
+            axios.put(`${API_URL}/proposals/${proposalId}`, updatedProposal, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    modal.hide();
+                    alert('Đã cập nhật đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi cập nhật:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi cập nhật');
+                });
         }
 
-        function openDeleteModal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Check if user can delete this proposal
-            if (currentUser.role !== 'admin' && proposal["CHI NHÁNH"] !== currentUser.branch) {
-                alert(`Bạn không có quyền xóa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-                return;
-            }
-            
-            // Set content in the modal
-            document.getElementById('deleteModalContent').innerHTML = `
-                <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal["NGƯỜI ĐỀ NGHỊ"] || '')}<br>
-                <strong>Đề xuất:</strong> ${sanitizeHTML(proposal["ĐỀ XUẤT"] || '')}<br>
-                <strong>Nội dung:</strong> ${sanitizeHTML(proposal["NỘI DUNG"] || '')}<br>
-                <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal["CHI NHÁNH"] || '')}
-            `;
-            
-            // Set the index for deletion
-            document.getElementById('confirmDeleteBtn').setAttribute('data-index', index);
-            
-            // Show the modal
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+        async function openDeleteModal(proposalId) {
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) return;
+
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    document.getElementById('deleteModalContent').innerHTML = `
+                        <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
+                        <strong>Đề xuất:</strong> ${sanitizeHTML(proposal.proposal || '')}<br>
+                        <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
+                        <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
+                    `;
+                    document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
+                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+                });
         }
 
-        function deleteProposal(index) {
-            const proposal = filteredProposals[index];
-            
-            // Find the index in the main proposals array
-            const mainIndex = proposals.findIndex(p => 
-                p["STT"] === proposal["STT"] && 
-                p["CHI NHÁNH"] === proposal["CHI NHÁNH"]
-            );
-            
-            if (mainIndex !== -1) {
-                // Remove from the main array
-                proposals.splice(mainIndex, 1);
-            }
-            
-            // Remove from filtered array
-            filteredProposals.splice(index, 1);
-            
-            // Hide the modal
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            deleteModal.hide();
-            
-            // Show success message
-            alert(`Đã xóa đề xuất từ chi nhánh ${proposal["CHI NHÁNH"]}!`);
-            
-            // Refresh the table
-            renderTable();
-            renderPagination();
+        async function deleteProposal(proposalId) {
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) return;
+
+            const token = localStorage.getItem('token');
+            axios.delete(`${API_URL}/proposals/${proposalId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                    alert('Đã xóa đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi xóa:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi xóa');
+                });
         }
 
         function handleExcelUpload() {
-            // Check if user is admin
-            if (currentUser.role === 'admin') {
-                showUploadError("Admin không thể tải lên đề xuất. Vui lòng sử dụng tài khoản nhân sự chi nhánh.");
-                return;
-            }
-            
             const fileInput = document.getElementById('excelFile');
             const file = fileInput.files[0];
-            
+
             if (!file) {
                 showUploadError("Vui lòng chọn file Excel!");
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Get the first sheet
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // Convert to JSON
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    
+
                     if (jsonData.length < 2) {
                         showUploadError("File không chứa dữ liệu hoặc không đúng định dạng!");
                         return;
                     }
-                    
-                    // Get headers (assuming first row contains headers)
+
                     const headers = jsonData[0];
-                    
-                    // Check if required columns exist
-                    const requiredColumns = ["STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "ĐỀ XUẤT", "NỘI DUNG"];
+                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "ĐỀ XUẤT", "NỘI DUNG"];
                     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-                    
+
                     if (missingColumns.length > 0) {
                         showUploadError(`File thiếu các cột bắt buộc: ${missingColumns.join(', ')}`);
                         return;
                     }
-                    
-                    // Process data rows (skip header row)
+
+                    const token = localStorage.getItem('token');
                     const newProposals = [];
+                    const duplicates = new Set();
+                    const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}`));
+
                     for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
                         if (row.length === 0 || row.every(cell => cell === null || cell === undefined || cell === '')) {
-                            continue; // Skip empty rows
+                            continue;
                         }
-                        
+
                         const proposal = {};
                         headers.forEach((header, index) => {
                             if (index < row.length) {
                                 proposal[header] = row[index];
-                            } else {
-                                proposal[header] = '';
                             }
                         });
-                        
-                        // Set current branch for new proposals
-                        proposal["CHI NHÁNH"] = currentUser.branch;
-                        
-                        // Generate new STT
-                        proposal["STT"] = proposals.length + newProposals.length + 1;
-                        
-                        newProposals.push(proposal);
+
+                        const formattedProposal = {
+                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"] || '',
+                            room: proposal["PHÒNG BAN"] || '',
+                            branch: currentUser.branch,
+                            department: proposal["BỘ PHẬN"] || '',
+                            date: formatDateToDDMMYYYY(proposal["NGÀY THÁNG"]) || '',
+                            code: proposal["MÃ SỐ ĐỀ XUẤT"] || '',
+                            proposal: proposal["ĐỀ XUẤT"] || '',
+                            content: proposal["NỘI DUNG"] || '',
+                            purpose: proposal["MỤC ĐÍCH"] || '',
+                            supplier: proposal["NHÀ CUNG CẤP"] || '',
+                            estimated_cost: parseFloat(proposal["DỰ TÍNH"]) || 0,
+                            budget: parseFloat(proposal["NGÂN SÁCH"]) || 0,
+                            approved_amount: parseFloat(proposal["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0,
+                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"] || '',
+                            payment_date: formatDateToDDMMYYYY(proposal["NGÀY THANH TOÁN"]) || '',
+                            notes: proposal["GHI CHÚ"] || '',
+                            status: proposal["TRẠNG THÁI"] || '',
+                            approver: proposal["NGƯỜI DUYỆT"] || '',
+                            approval_date: formatDateToDDMMYYYY(proposal["NGÀY DUYỆT"]) || '',
+                            completed: proposal["HOÀN THÀNH"] || ''
+                        };
+
+                        const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
+                        if (existingCodes.has(key)) {
+                            duplicates.add(key);
+                            continue;
+                        }
+                        existingCodes.add(key);
+                        newProposals.push(axios.post(`${API_URL}/proposals`, formattedProposal, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        }));
                     }
-                    
+
                     if (newProposals.length === 0) {
-                        showUploadError("Không tìm thấy dữ liệu hợp lệ trong file!");
+                        showUploadError("Không có đề xuất mới để tải lên hoặc tất cả đề xuất trùng lặp!");
                         return;
                     }
-                    
-                    // Add new proposals to the main array
-                    proposals = [...proposals, ...newProposals];
-                    
-                    // Show success message
-                    showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
-                    
-                    // Reset file input
-                    fileInput.value = '';
-                    
-                    // Refresh the table
-                    loadProposalData();
-                    
+
+                    Promise.all(newProposals)
+                        .then(() => {
+                            showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
+                            fileInput.value = '';
+                            loadProposalData();
+                            if (duplicates.size > 0) {
+                                alert(`Có ${duplicates.size} đề xuất trùng lặp đã bị bỏ qua và không được thêm vào.`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Lỗi khi tải lên:', error.message);
+                            showUploadError(error.response?.data?.message || 'Lỗi khi tải lên đề xuất');
+                        });
                 } catch (error) {
-                    console.error("Error parsing Excel file:", error);
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
                 }
             };
-            
+
             reader.onerror = function() {
                 showUploadError("Lỗi khi đọc file!");
             };
-            
+
             reader.readAsArrayBuffer(file);
         }
 
         function showUploadError(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
-            successElement.classList.add('hidden');
+            if (errorElement && successElement) {
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+                successElement.classList.add('hidden');
+            }
         }
 
         function showUploadSuccess(message) {
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            
-            successElement.textContent = message;
-            successElement.classList.remove('hidden');
-            errorElement.classList.add('hidden');
-            
-            // Auto-hide the modal after success
-            setTimeout(() => {
-                const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
-                uploadModal.hide();
-            }, 2000);
+            if (errorElement && successElement) {
+                successElement.textContent = message;
+                successElement.classList.remove('hidden');
+                errorElement.classList.add('hidden');
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                }, 2000);
+            }
         }
 
         function downloadExcelTemplate() {
-            // Create workbook and worksheet
             const wb = XLSX.utils.book_new();
-            
-            // Define headers
             const headers = [
-                "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "GHI CHÚ", "HOÀN THÀNH"
+                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "CHI NHÁNH", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH", "NGÂN SÁCH", "SỐ TIỀN ĐƯỢC DUYỆT", 
+                "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "GHI CHÚ", "TRẠNG THÁI", "NGƯỜI DUYỆT", "NGÀY DUYỆT", 
+                "HOÀN THÀNH"
             ];
-            
-            // Create sample data
             const sampleData = [
                 headers,
-                [1, "Nguyễn Văn A", "KD", new Date().toLocaleDateString(), "", "Mua laptop", "Mua laptop phục vụ công việc", "Công ty ABC", 15000000, "", ""],
-                [2, "Trần Thị B", "HCNS", new Date().toLocaleDateString(), "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Công ty XYZ", 5000000, "", ""]
+                ["Nguyễn Văn A", "Kinh Doanh", "", "KD", "01/05/2025", "", "Mua laptop", "Mua laptop phục vụ công việc", 
+                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, 20000000, 0, "", "", "", "Đang chờ duyệt", "", "", ""],
+                ["Trần Thị B", "Hành Chính Nhân Sự", "", "HCNS", "02/05/2025", "", "Mua máy in", "Mua máy in phục vụ văn phòng", 
+                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, 10000000, 0, "", "", "", "Đang chờ duyệt", "", "", ""]
             ];
-            
-            // Create worksheet
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
-            
-            // Add worksheet to workbook
             XLSX.utils.book_append_sheet(wb, ws, "Template");
-            
-            // Generate excel file and download
             XLSX.writeFile(wb, "DE_XUAT_THANH_TOAN_TEMPLATE.xlsx");
         }
 
-        function exportSummaryReport(branchType) {
-            // Filter proposals by branch type (XDV or PTT)
-            const filteredData = proposals.filter(p => p["CHI NHÁNH"].startsWith(branchType));
-            
-            if (filteredData.length === 0) {
-                alert(`Không có dữ liệu từ các chi nhánh ${branchType} để xuất báo cáo!`);
-                return;
-            }
-            
-            // Create workbook and worksheet
-            const wb = XLSX.utils.book_new();
-            
-            // Define headers
-            const headers = [
-                "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", 
-                "HOÀN THÀNH", "CHI NHÁNH"
-            ];
-            
-            // Format data for export
-            const data = [headers];
-            
-            filteredData.forEach((item, index) => {
-                const row = [
-                    index + 1, // Re-number for the report
-                    item["NGƯỜI ĐỀ NGHỊ"] || '',
-                    item["BỘ PHẬN"] || '',
-                    item["NGÀY THÁNG"] || '',
-                    item["MÃ SỐ ĐỀ XUẤT"] || '',
-                    item["ĐỀ XUẤT"] || '',
-                    item["NỘI DUNG"] || '',
-                    item["NHÀ CUNG CẤP"] || '',
-                    item["DỰ TÍNH"] || 0,
-                    item["SỐ TIỀN ĐƯỢC DUYỆT"] || 0,
-                    item["GHI CHÚ"] || '',
-                    item["HOÀN THÀNH"] || '',
-                    item["CHI NHÁNH"] || ''
-                ];
-                data.push(row);
-            });
-            
-            // Add a summary row
-            const totalEstimated = filteredData.reduce((sum, item) => sum + (parseFloat(item["DỰ TÍNH"]) || 0), 0);
-            const totalApproved = filteredData.reduce((sum, item) => sum + (parseFloat(item["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0), 0);
-            
-            // Add empty rows and then summary
-            data.push([]);
-            data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
-            
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, `Báo cáo ${branchType}`);
-            
-            // Generate excel file and download
-            XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        }
-
-        // Helper function to sanitize HTML
         function sanitizeHTML(text) {
             const element = document.createElement('div');
             element.innerText = text;
@@ -1234,3 +1238,64 @@
     </script>
 </body>
 </html>
+<xaiArtifact> 
+
+---
+
+### Hướng dẫn sử dụng
+
+1. **Lưu file**:
+   - Sao chép nội dung trong thẻ `<xaiArtifact>` (bỏ thẻ mở/đóng).
+   - Tạo file `index.html` trong thư mục `C:\de-xuat`.
+   - Dán nội dung vào file và lưu.
+
+2. **Kiểm tra cục bộ**:
+   - Đảm bảo các file khác (`app.py`, `create_db.py`, `start.sh`, `requirements.txt`, `.env`, `.gitignore`, `API.md`) đã được khôi phục theo mã nguồn tổng hợp ở phản hồi trước.
+   - Chạy ứng dụng cục bộ:
+     ```powershell
+     cd C:\de-xuat
+     .\venv\Scripts\Activate.ps1
+     python app.py
+     ```
+   - Mở trình duyệt, truy cập `http://localhost:10000/`.
+   - Kiểm tra:
+     - Đăng nhập với `admin`/`admin123`.
+     - Tải file Excel mẫu, xác nhận các cột và định dạng ngày `DD/MM/YYYY`.
+     - Tải lên file Excel, kiểm tra đề xuất được thêm đúng.
+     - Bảng hiển thị có đầy đủ cột, `CHI NHÁNH` trước `BỘ PHẬN`.
+
+3. **Đẩy lên GitHub**:
+   ```powershell
+   git add index.html
+   git commit -m "Cập nhật index.html tối ưu, bỏ logic vai trò, sửa định dạng ngày và cột Excel"
+   git push origin main
+   ```
+
+4. **Triển khai lại trên Render**:
+   - Đăng nhập [Render Dashboard](https://dashboard.render.com), mở dự án `de-xuat-ea0h`.
+   - Vào **Deploy** > **Manual Deploy**, chọn nhánh `main`.
+   - Kiểm tra log triển khai:
+     ```
+     Da xoa database cu.
+     Da tao user admin va 36 tai khoan cho 18 chi nhanh voi mat khau ma hoa.
+     [INFO] Starting gunicorn ...
+     ```
+
+5. **Kiểm tra hệ thống**:
+   - **Backend (`https://de-xuat-ea0h.onrender.com`)**:
+     ```powershell
+     curl -X GET https://de-xuat-ea0h.onrender.com/
+     curl -X POST https://de-xuat-ea0h.onrender.com/api/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}'
+     ```
+   - **Frontend (`https://btbinh2710.github.io/de-xuat/`)**:
+     - Truy cập, đăng nhập, kiểm tra bảng, tải lên/tải xuống Excel.
+
+---
+
+### Lưu ý
+- **Bảo mật**: Đảm bảo `.env` không bị commit.
+- **Logging**: Kiểm tra `logs/app.log` trên Render.
+- **Windows**: Lệnh trên dành cho PowerShell.
+- Nếu cần các file khác (`app.py`, `create_db.py`, v.v.), hãy cho tôi biết để gửi lại.
+
+Chúc bạn triển khai thành công!
