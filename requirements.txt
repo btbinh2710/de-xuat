@@ -1,6 +1,5 @@
 flask
-flask_sqlalchemy
+flask-cors
 python-dotenv
-flask_jwt_extended
+pyjwt
 marshmallow
-flask_cors
