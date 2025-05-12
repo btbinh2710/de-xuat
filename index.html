@@ -561,16 +561,13 @@
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
-            // Xử lý định dạng YYYY-MM-DD
             if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 const [year, month, day] = dateStr.split('-');
                 return `${day}/${month}/${year}`;
             }
-            // Xử lý định dạng MM/DD/YYYY
             if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                 return dateStr;
             }
-            // Xử lý định dạng từ Excel (timestamp hoặc chuỗi ngày)
             try {
                 const date = new Date(dateStr);
                 if (isNaN(date.getTime())) return '';
@@ -732,12 +729,11 @@
                 saveEditChanges(bootstrap.Modal.getInstance(document.getElementById('editModal')));
             });
 
-            // Quản lý focus khi đóng modal
             const uploadModal = document.getElementById('uploadModal');
             uploadModal.addEventListener('hidden.bs.modal', function () {
                 const uploadBtn = document.getElementById('uploadBtn');
                 if (uploadBtn) {
-                    uploadBtn.focus(); // Chuyển focus về nút mở modal
+                    uploadBtn.focus();
                 }
             });
         }
@@ -1057,7 +1053,6 @@
                     document.getElementById('editCompleted').value = proposal.completed || '';
                     document.getElementById('editNotes').value = proposal.notes || '';
 
-                    // Hạn chế quyền chỉnh sửa cho kế toán
                     if (currentUser.role === 'accountant') {
                         document.getElementById('editProposer').setAttribute('readonly', 'readonly');
                         document.getElementById('editRoom').setAttribute('readonly', 'readonly');
@@ -1196,11 +1191,14 @@
         }
 
         function handleExcelUpload() {
+            if (!currentUser) {
+                showUploadError("Vui lòng đăng nhập để tải lên đề xuất!");
+                return;
+            }
             if (currentUser.role === 'accountant') {
                 showUploadError("Tài khoản kế toán không được phép tải lên đề xuất!");
                 return;
             }
-
             const fileInput = document.getElementById('excelFile');
             const file = fileInput.files[0];
 
@@ -1233,6 +1231,11 @@
                     }
 
                     const token = localStorage.getItem('token');
+                    if (!token) {
+                        showUploadError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
+                        return;
+                    }
+
                     const newProposals = [];
                     const duplicates = new Set();
                     const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}`));
@@ -1272,7 +1275,6 @@
                             completed: 'No'
                         };
 
-                        // Kiểm tra các trường bắt buộc
                         const requiredFields = [
                             { key: 'proposer', name: 'NGƯỜI ĐỀ NGHỊ' },
                             { key: 'room', name: 'PHÒNG BAN' },
@@ -1289,13 +1291,11 @@
                             return;
                         }
 
-                        // Kiểm tra định dạng ngày
                         if (formattedProposal.date && !formattedProposal.date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                             showUploadError(`Hàng ${i + 1}: NGÀY THÁNG phải có định dạng DD/MM/YYYY`);
                             return;
                         }
 
-                        // Kiểm tra estimated_cost
                         if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
                             showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
                             return;
