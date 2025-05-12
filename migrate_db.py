@@ -1,11 +1,12 @@
 import sqlite3
+import re
 
 def migrate_db():
     try:
         conn = sqlite3.connect('data.db')
         c = conn.cursor()
 
-        # Danh sách cột cần thêm
+        # Phần 1: Thêm các cột thiếu
         new_columns = [
             ('room', 'TEXT'),
             ('purpose', 'TEXT'),
@@ -29,8 +30,37 @@ def migrate_db():
             else:
                 print(f"ℹ Cột {column_name} đã tồn tại.")
 
+        # Phần 2: Chuyển đổi định dạng ngày
+        # Lấy tất cả đề xuất
+        c.execute("SELECT id, date, payment_date, approval_date FROM proposals")
+        rows = c.fetchall()
+
+        for row in rows:
+            proposal_id = row[0]
+            date = row[1]
+            payment_date = row[2]
+            approval_date = row[3]
+
+            # Chuyển đổi định dạng ngày từ YYYY-MM-DD sang DD/MM/YYYY
+            def convert_date(date_str):
+                if date_str and re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+                    year, month, day = date_str.split('-')
+                    return f"{day}/{month}/{year}"
+                return date_str
+
+            new_date = convert_date(date)
+            new_payment_date = convert_date(payment_date)
+            new_approval_date = convert_date(approval_date)
+
+            # Cập nhật lại đề xuất
+            c.execute("""
+                UPDATE proposals
+                SET date = ?, payment_date = ?, approval_date = ?
+                WHERE id = ?
+            """, (new_date, new_payment_date, new_approval_date, proposal_id))
+
         conn.commit()
-        print("✅ Migration hoàn tất.")
+        print("✅ Migration hoàn tất, đã thêm cột thiếu và chuyển đổi định dạng ngày sang DD/MM/YYYY.")
     except Exception as e:
         print(f"⚠ Lỗi khi migration: {e}")
     finally:

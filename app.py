@@ -47,7 +47,7 @@ class ProposalSchema(Schema):
     proposer = fields.Str(required=True, validate=validate.Length(min=1))
     room = fields.Str(allow_none=True)
     department = fields.Str(required=True, validate=validate.Length(min=1))
-    date = fields.Str(required=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$'))
+    date = fields.Str(required=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$'))
     code = fields.Str(allow_none=True)
     proposal = fields.Str(required=True, validate=validate.Length(min=1))
     content = fields.Str(required=True, validate=validate.Length(min=1))
@@ -57,11 +57,11 @@ class ProposalSchema(Schema):
     budget = fields.Float(allow_none=True, validate=validate.Range(min=0))
     approved_amount = fields.Float(allow_none=True, validate=validate.Range(min=0))
     transfer_code = fields.Str(allow_none=True)
-    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$'))
+    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
     notes = fields.Str(allow_none=True)
     status = fields.Str(allow_none=True)
     approver = fields.Str(allow_none=True)
-    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$'))
+    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
     completed = fields.Str(allow_none=True)
 
 proposal_schema = ProposalSchema()
@@ -124,7 +124,7 @@ def handle_options(path):
     response = make_response()
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Authorization', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Authorization, Content-Type')
     return response
 
 # Authenticate token
