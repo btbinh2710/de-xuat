@@ -1,154 +1,108 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import sqlite3
-import bcrypt
 import jwt
+import bcrypt
 import datetime
-import os
-import logging
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["https://btbinh2710.github.io", "http://127.0.0.1:5000"]}})  # Cho phép CORS
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+CORS(app, resources={r"/api/*": {"origins": "https://btbinh2710.github.io"}})
 
-JWT_SECRET = os.environ.get('JWT_SECRET')
+# Danh sách người dùng giả lập
+users = [
+    {"username": "admin", "password": bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'), "role": "admin", "branch": "All"}
+]
+for i in range(1, 19):
+    users.append({"username": f"chi_nhanh_{i}_manager1", "password": bcrypt.hashpw("manager123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'), "role": "manager", "branch": f"Chi Nhánh {i}"})
+    users.append({"username": f"chi_nhanh_{i}_manager2", "password": bcrypt.hashpw("manager123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'), "role": "manager", "branch": f"Chi Nhánh {i}"})
 
-def get_db():
-    conn = sqlite3.connect('data.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+# Danh sách đề xuất giả lập
+proposals = [
+    {"id": 1, "proposer": "Nguyễn Văn A", "department": "KD", "date": "2025-05-01", "code": "DX001", "proposal": "Mua laptop", "content": "Mua laptop phục vụ công việc", "supplier": "Công ty ABC", "estimated_cost": 15000000, "approved_amount": 0, "notes": "", "completed": "", "branch": "Chi Nhánh 1"}
+]
 
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    username = data['username']
-    password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    branch = data['branch']
-    role = data.get('role', 'branch')
-    conn = get_db()
-    c = conn.cursor()
+def authenticate_token():
+    token = request.headers.get('Authorization', '').split(' ')[1] if 'Authorization' in request.headers else None
+    if not token:
+        return None, jsonify({"error": "Token required"}), 401
     try:
-        c.execute('INSERT INTO users (username, password, branch, role) VALUES (?, ?, ?, ?)',
-                  (username, password, branch, role))
-        conn.commit()
-        return jsonify({'message': 'User created'}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({'error': 'Username already exists'}), 400
-    finally:
-        conn.close()
+        user = jwt.decode(token, 'your-secret-key', algorithms=['HS256'])
+        return user, None, None
+    except:
+        return None, jsonify({"error": "Invalid token"}), 403
 
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data['username']
-    password = data['password'].encode('utf-8')
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM users WHERE username = ?', (username,))
-    user = c.fetchone()
-    conn.close()
+    username = data.get('username')
+    password = data.get('password')
+    user = next((u for u in users if u['username'] == username), None)
     
-    if not user:
-        logger.error(f"Login failed: Username {username} not found")
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    try:
-        if bcrypt.checkpw(password, user['password'].encode('utf-8')):
-            token = jwt.encode({
-                'username': username,
-                'branch': user['branch'],
-                'role': user['role'],
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-            }, JWT_SECRET, algorithm='HS256')
-            logger.info(f"Login successful for {username}")
-            return jsonify({'token': token, 'branch': user['branch'], 'role': user['role']})
-        else:
-            logger.error(f"Login failed: Incorrect password for {username}")
-            return jsonify({'error': 'Invalid credentials'}), 401
-    except ValueError as e:
-        logger.error(f"Login failed for {username}: Invalid salt - {str(e)}")
-        return jsonify({'error': 'Invalid password format in database'}), 500
+    if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        return jsonify({"error": "Tên đăng nhập hoặc mật khẩu không đúng!"}), 401
 
-@app.route('/api/proposals', methods=['POST'])
-def create_proposal():
-    token = request.headers.get('Authorization', '').split(' ')[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        data = request.get_json()
-        data['branch'] = payload['branch']
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('''INSERT INTO proposals (proposer, department, date, code, proposal, content, supplier, estimated_cost, approved_amount, notes, completed, branch)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (data['proposer'], data['department'], data['date'], data['code'], data['proposal'],
-                   data['content'], data['supplier'], data['estimated_cost'], data['approved_amount'],
-                   data['notes'], data['completed'], data['branch']))
-        conn.commit()
-        proposal_id = c.lastrowid
-        conn.close()
-        return jsonify({'id': proposal_id, **data}), 201
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'error': 'Invalid token'}), 401
+    token = jwt.encode({
+        'username': user['username'],
+        'role': user['role'],
+        'branch': user['branch'],
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    }, 'your-secret-key')
+    return jsonify({"token": token, "role": user['role'], "branch": user['branch']})
 
 @app.route('/api/proposals', methods=['GET'])
 def get_proposals():
-    token = request.headers.get('Authorization', '').split(' ')[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        conn = get_db()
-        c = conn.cursor()
-        if payload['role'] == 'admin':
-            c.execute('SELECT * FROM proposals')
-        else:
-            c.execute('SELECT * FROM proposals WHERE branch = ?', (payload['branch'],))
-        proposals = [dict(row) for row in c.fetchall()]
-        conn.close()
+    user, error, status = authenticate_token()
+    if error:
+        return error, status
+    if user['role'] == 'admin':
         return jsonify(proposals)
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'error': 'Invalid token'}), 401
+    return jsonify([p for p in proposals if p['branch'] == user['branch']])
+
+@app.route('/api/proposals', methods=['POST'])
+def add_proposal():
+    user, error, status = authenticate_token()
+    if error:
+        return error, status
+    if user['role'] == 'admin':
+        return jsonify({"error": "Admin không thể thêm đề xuất!"}), 403
+
+    data = request.get_json()
+    new_proposal = {
+        "id": len(proposals) + 1,
+        **data,
+        "branch": user['branch']
+    }
+    proposals.append(new_proposal)
+    return jsonify(new_proposal), 201
 
 @app.route('/api/proposals/<int:id>', methods=['PUT'])
 def update_proposal(id):
-    token = request.headers.get('Authorization', '').split(' ')[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        data = request.get_json()
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('''UPDATE proposals SET proposer = ?, department = ?, date = ?, code = ?, proposal = ?, content = ?, supplier = ?, estimated_cost = ?, approved_amount = ?, notes = ?, completed = ?
-                     WHERE id = ? AND branch = ?''',
-                  (data['proposer'], data['department'], data['date'], data['code'], data['proposal'],
-                   data['content'], data['supplier'], data['estimated_cost'], data['approved_amount'],
-                   data['notes'], data['completed'], id, payload['branch']))
-        conn.commit()
-        conn.close()
-        if c.rowcount == 0:
-            return jsonify({'error': 'Proposal not found or unauthorized'}), 404
-        return jsonify(data)
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'error': 'Invalid token'}), 401
+    user, error, status = authenticate_token()
+    if error:
+        return error, status
+    proposal = next((p for p in proposals if p['id'] == id), None)
+    if not proposal:
+        return jsonify({"error": "Đề xuất không tồn tại!"}), 404
+    if user['role'] != 'admin' and proposal['branch'] != user['branch']:
+        return jsonify({"error": "Bạn không có quyền chỉnh sửa đề xuất này!"}), 403
+
+    data = request.get_json()
+    for key, value in data.items():
+        proposal[key] = value
+    return jsonify(proposal)
 
 @app.route('/api/proposals/<int:id>', methods=['DELETE'])
 def delete_proposal(id):
-    token = request.headers.get('Authorization', '').split(' ')[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        conn = get_db()
-        c = conn.cursor()
-        c.execute('DELETE FROM proposals WHERE id = ? AND branch = ?', (id, payload['branch']))
-        conn.commit()
-        conn.close()
-        if c.rowcount == 0:
-            return jsonify({'error': 'Proposal not found or unauthorized'}), 404
-        return jsonify({'message': 'Proposal deleted'})
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'error': 'Invalid token'}), 401
+    user, error, status = authenticate_token()
+    if error:
+        return error, status
+    proposal_index = next((i for i, p in enumerate(proposals) if p['id'] == id), None)
+    if proposal_index is None:
+        return jsonify({"error": "Đề xuất không tồn tại!"}), 404
+    if user['role'] != 'admin' and proposals[proposal_index]['branch'] != user['branch']:
+        return jsonify({"error": "Bạn không có quyền xóa đề xuất này!"}), 403
+
+    proposals.pop(proposal_index)
+    return '', 204
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
