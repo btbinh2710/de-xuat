@@ -1,7 +1,6 @@
-flask==2.3.3
-gunicorn==22.0.0
-pyjwt==2.8.0
-bcrypt==4.0.1
-flask-cors==4.0.0
-python-dotenv==1.0.0
-marshmallow==3.20.1
+flask
+flask_sqlalchemy
+python-dotenv
+flask_jwt_extended
+marshmallow
+flask_cors

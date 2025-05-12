@@ -1,293 +1,224 @@
-from flask import Flask, request, jsonify, make_response
-from flask_cors import CORS
-import jwt
-import bcrypt
-import datetime
-import sqlite3
+```python
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from dotenv import load_dotenv
+from marshmallow import Schema, fields, validates, ValidationError
+from datetime import datetime
 import os
-from marshmallow import Schema, fields, validate, ValidationError
-import logging
-from logging.handlers import RotatingFileHandler
-
-load_dotenv()
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
+from flask_cors import CORS
 
 app = Flask(__name__)
+load_dotenv()
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["https://btbinh2710.github.io", "https://de-xuat-ea0h.onrender.com"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Authorization", "Content-Type"]
-    }
-})
+# Cấu hình CORS
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8000", "https://btbinh2710.github.io"]}})
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-handler = RotatingFileHandler('logs/app.log', maxBytes=1000000, backupCount=5)
-handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-app.logger.addHandler(handler)
-app.logger.setLevel(logging.INFO)
-app.logger.info('Ung dung khoi dong')
+# Cấu hình ứng dụng Flask
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///proposals.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['PORT'] = int(os.getenv('PORT', 10000))
 
-class APIError(Exception):
-    def __init__(self, message, status_code):
-        super().__init__(message)
-        self.message = message
-        self.status_code = status_code
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
 
+# Định nghĩa mô hình Proposal
+class Proposal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    proposer = db.Column(db.String(100), nullable=False)
+    room = db.Column(db.String(100), nullable=False)
+    branch = db.Column(db.String(100), nullable=False)
+    department = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.String(10), nullable=False)
+    code = db.Column(db.String(50), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    purpose = db.Column(db.Text)
+    supplier = db.Column(db.String(100), nullable=False)
+    estimated_cost = db.Column(db.Float, nullable=False)
+    budget = db.Column(db.Float)
+    approved_amount = db.Column(db.Float)
+    transfer_code = db.Column(db.String(50))
+    payment_date = db.Column(db.String(10))
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(50))
+    approver = db.Column(db.String(100))
+    approval_date = db.Column(db.String(10))
+    completed = db.Column(db.String(10))
+
+# Định nghĩa mô hình User
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+    branch = db.Column(db.String(100))
+
+# Schema để xác thực dữ liệu Proposal
 class ProposalSchema(Schema):
-    proposer = fields.Str(required=True, validate=validate.Length(min=1))
-    room = fields.Str(required=True, validate=validate.Length(min=1))
-    department = fields.Str(required=True, validate=validate.Length(min=1))
-    date = fields.Str(required=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$'))
-    code = fields.Str(required=True, validate=validate.Length(min=1))
-    content = fields.Str(required=True, validate=validate.Length(min=1))
+    proposer = fields.Str(required=True)
+    room = fields.Str(required=True)
+    branch = fields.Str(required=True)
+    department = fields.Str(required=True)
+    date = fields.Str(required=True)
+    code = fields.Str(required=True)
+    content = fields.Str(required=True)
     purpose = fields.Str(allow_none=True)
-    supplier = fields.Str(required=True, validate=validate.Length(min=1))
-    estimated_cost = fields.Float(required=True, validate=validate.Range(min=0))
-    budget = fields.Float(allow_none=True, validate=validate.Range(min=0))
-    approved_amount = fields.Float(allow_none=True, validate=validate.Range(min=0))
+    supplier = fields.Str(required=True)
+    estimated_cost = fields.Float(required=True)
+    budget = fields.Float(allow_none=True)
+    approved_amount = fields.Float(allow_none=True)
     transfer_code = fields.Str(allow_none=True)
-    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
+    payment_date = fields.Str(allow_none=True)
     notes = fields.Str(allow_none=True)
     status = fields.Str(allow_none=True)
     approver = fields.Str(allow_none=True)
-    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
+    approval_date = fields.Str(allow_none=True)
     completed = fields.Str(allow_none=True)
 
+    @validates('date')
+    def validate_date(self, value):
+        if value and not self._is_valid_date(value):
+            raise ValidationError('Date must be in DD/MM/YYYY format')
+
+    @validates('payment_date')
+    def validate_payment_date(self, value):
+        if value and not self._is_valid_date(value):
+            raise ValidationError('Payment date must be in DD/MM/YYYY format')
+
+    @validates('approval_date')
+    def validate_approval_date(self, value):
+        if value and not self._is_valid_date(value):
+            raise ValidationError('Approval date must be in DD/MM/YYYY format')
+
+    @validates('estimated_cost')
+    def validate_estimated_cost(self, value):
+        if value < 0:
+            raise ValidationError('Estimated cost must be non-negative')
+
+    @validates('budget')
+    def validate_budget(self, value):
+        if value is not None and value < 0:
+            raise ValidationError('Budget must be non-negative')
+
+    @validates('approved_amount')
+    def validate_approved_amount(self, value):
+        if value is not None and value < 0:
+            raise ValidationError('Approved amount must be non-negative')
+
+    def _is_valid_date(self, date_str):
+        try:
+            datetime.strptime(date_str, '%d/%m/%Y')
+            return True
+        except ValueError:
+            return False
+
 proposal_schema = ProposalSchema()
+proposals_schema = ProposalSchema(many=True)
 
-def get_db_connection():
-    conn = sqlite3.connect('data.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def format_proposal(proposal):
-    return {
-        'branch': proposal['branch'],
-        'id': proposal['id'],
-        'proposer': proposal['proposer'],
-        'room': proposal['room'],
-        'department': proposal['department'],
-        'date': proposal['date'],
-        'code': proposal['code'],
-        'content': proposal['content'],
-        'purpose': proposal['purpose'],
-        'supplier': proposal['supplier'],
-        'estimated_cost': proposal['estimated_cost'],
-        'budget': proposal['budget'],
-        'approved_amount': proposal['approved_amount'],
-        'transfer_code': proposal['transfer_code'],
-        'payment_date': proposal['payment_date'],
-        'notes': proposal['notes'],
-        'status': proposal['status'],
-        'approver': proposal['approver'],
-        'approval_date': proposal['approval_date'],
-        'completed': proposal['completed']
-    }
-
-@app.route('/', methods=['GET', 'HEAD'])
-def health_check():
-    return jsonify({'status': 'healthy'}), 200
-
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
-
-@app.errorhandler(APIError)
-def handle_api_error(error):
-    response = jsonify({'message': error.message, 'status_code': error.status_code})
-    response.status_code = error.status_code
-    app.logger.error(f'APIError: {error.message} (Status: {error.status_code})')
-    return response
-
-@app.errorhandler(Exception)
-def handle_general_error(error):
-    response = jsonify({'message': 'Loi server noi bo', 'status_code': 500})
-    response.status_code = 500
-    app.logger.error(f'Loi khong mong muon: {str(error)}')
-    return response
-
-@app.route('/api/<path:path>', methods=['OPTIONS'])
-def handle_options(path):
-    response = make_response()
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-    return response
-
-def authenticate_token():
-    token = request.headers.get('Authorization', '').split(' ')[1] if 'Authorization' in request.headers else None
-    if not token:
-        raise APIError('Token bat buoc', 401)
-    try:
-        user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        app.logger.info(f'Token xac thuc thanh cong cho nguoi dung: {user["username"]}')
-        return user
-    except Exception as e:
-        app.logger.error(f'Token khong hop le: {str(e)}')
-        raise APIError('Token khong hop le', 403)
-
+# Endpoint đăng nhập
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
-    if not username or not password:
-        app.logger.warning('Thieu ten dang nhap hoac mat khau')
-        raise APIError('Ten dang nhap va mat khau la bat buoc', 400)
+    user = User.query.filter_by(username=username, password=password).first()
+    if not user:
+        return jsonify({'message': 'Invalid credentials'}), 401
 
-    conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-    conn.close()
+    access_token = create_access_token(identity={'username': user.username, 'role': user.role, 'branch': user.branch})
+    return jsonify({
+        'token': access_token,
+        'role': user.role,
+        'branch': user.branch
+    })
 
-    if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        app.logger.warning(f'Thu dang nhap that bai cho nguoi dung: {username}')
-        raise APIError('Ten dang nhap hoac mat khau khong dung!', 401)
-
-    token = jwt.encode({
-        'username': user['username'],
-        'role': user['role'],
-        'branch': user['branch'],
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    }, SECRET_KEY, algorithm='HS256')
-
-    app.logger.info(f'Dang nhap thanh cong cho nguoi dung: {username}')
-    return jsonify({'token': token, 'role': user['role'], 'branch': user['branch']})
-
+# Endpoint lấy danh sách đề xuất
 @app.route('/api/proposals', methods=['GET'])
+@jwt_required()
 def get_proposals():
-    user = authenticate_token()
-    
-    conn = get_db_connection()
-    if user['role'] in ['admin', 'accountant']:
-        proposals = conn.execute('SELECT * FROM proposals').fetchall()
+    current_user = get_jwt_identity()
+    role = current_user['role']
+    branch = current_user['branch']
+
+    if role == 'accountant':
+        proposals = Proposal.query.all()
+    elif role == 'admin':
+        proposals = Proposal.query.all()
     else:
-        proposals = conn.execute('SELECT * FROM proposals WHERE branch = ?', (user['branch'],)).fetchall()
-    conn.close()
+        proposals = Proposal.query.filter_by(branch=branch).all()
 
-    app.logger.info(f'Lay {len(proposals)} de xuat cho nguoi dung: {user["username"]}')
-    return jsonify([format_proposal(dict(row)) for row in proposals])
+    return jsonify(proposals_schema.dump(proposals))
 
+# Endpoint thêm đề xuất
 @app.route('/api/proposals', methods=['POST'])
+@jwt_required()
 def add_proposal():
-    user = authenticate_token()
-    if user['role'] in ['admin', 'accountant']:
-        raise APIError('Admin va ke toan khong the them de xuat!', 403)
+    current_user = get_jwt_identity()
+    if current_user['role'] == 'accountant':
+        return jsonify({'message': 'Accountants cannot create proposals'}), 403
 
-    data = request.get_json()
     try:
-        validated_data = proposal_schema.load(data)
+        data = proposal_schema.load(request.get_json())
     except ValidationError as err:
-        raise APIError(f'Loi validation: {err.messages}', 400)
+        return jsonify({'message': err.messages}), 400
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO proposals (proposer, room, branch, department, date, code, content, purpose, supplier,
-                              estimated_cost, budget, approved_amount, transfer_code, payment_date, notes, status,
-                              approver, approval_date, completed)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        validated_data.get('proposer'),
-        validated_data.get('room'),
-        user['branch'],
-        validated_data.get('department'),
-        validated_data.get('date'),
-        validated_data.get('code'),
-        validated_data.get('content'),
-        validated_data.get('purpose'),
-        validated_data.get('supplier'),
-        validated_data.get('estimated_cost'),
-        validated_data.get('budget'),
-        validated_data.get('approved_amount'),
-        validated_data.get('transfer_code'),
-        validated_data.get('payment_date'),
-        validated_data.get('notes'),
-        validated_data.get('status'),
-        validated_data.get('approver'),
-        validated_data.get('approval_date'),
-        validated_data.get('completed')
-    ))
-    conn.commit()
-    new_id = cursor.lastrowid
-    new_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (new_id,)).fetchone()
-    conn.close()
+    new_proposal = Proposal(**data)
+    db.session.add(new_proposal)
+    db.session.commit()
+    return jsonify(proposal_schema.dump(new_proposal)), 201
 
-    app.logger.info(f'Tao de xuat moi ID {new_id} boi nguoi dung: {user["username"]}')
-    return jsonify(format_proposal(dict(new_proposal))), 201
-
+# Endpoint cập nhật đề xuất
 @app.route('/api/proposals/<int:id>', methods=['PUT'])
+@jwt_required()
 def update_proposal(id):
-    user = authenticate_token()
+    current_user = get_jwt_identity()
+    role = current_user['role']
+    branch = current_user['branch']
 
-    conn = get_db_connection()
-    proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
-    
-    if not proposal:
-        conn.close()
-        raise APIError('De xuat khong ton tai!', 404)
-    if user['role'] == 'manager' and proposal['branch'] != user['branch']:
-        conn.close()
-        raise APIError('Ban khong co quyen chinh sua de xuat nay!', 403)
+    proposal = Proposal.query.get_or_404(id)
 
-    data = request.get_json()
-    
-    if user['role'] == 'accountant':
-        # Kế toán chỉ được cập nhật các trường: approved_amount, transfer_code, payment_date, notes, completed
-        allowed_fields = {'approved_amount', 'transfer_code', 'payment_date', 'notes', 'completed'}
-        update_fields = {k: v for k, v in data.items() if k in allowed_fields and v is not None}
+    if role != 'admin' and proposal.branch != branch and role != 'accountant':
+        return jsonify({'message': 'Unauthorized access'}), 403
+
+    try:
+        data = proposal_schema.load(request.get_json(), partial=(role == 'accountant'))
+    except ValidationError as err:
+        return jsonify({'message': err.messages}), 400
+
+    if role == 'accountant':
+        allowed_fields = ['approved_amount', 'transfer_code', 'payment_date', 'notes', 'completed', 'status']
+        for key, value in data.items():
+            if key in allowed_fields:
+                setattr(proposal, key, value)
     else:
-        # Admin và manager được cập nhật tất cả các trường
-        try:
-            validated_data = proposal_schema.load(data, partial=True)
-        except ValidationError as err:
-            conn.close()
-            raise APIError(f'Loi validation: {err.messages}', 400)
-        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+        for key, value in data.items():
+            setattr(proposal, key, value)
 
-    if not update_fields:
-        conn.close()
-        raise APIError('Khong co truong nao de cap nhat', 400)
+    db.session.commit()
+    return jsonify(proposal_schema.dump(proposal))
 
-    query = 'UPDATE proposals SET ' + ', '.join(f'{k} = ?' for k in update_fields.keys()) + ' WHERE id = ?'
-    values = list(update_fields.values()) + [id]
-    conn.execute(query, values)
-    conn.commit()
-
-    updated_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
-    conn.close()
-
-    app.logger.info(f'Cap nhat de xuat ID {id} boi nguoi dung: {user["username"]}')
-    return jsonify(format_proposal(dict(updated_proposal)))
-
+# Endpoint xóa đề xuất
 @app.route('/api/proposals/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_proposal(id):
-    user = authenticate_token()
+    current_user = get_jwt_identity()
+    role = current_user['role']
+    branch = current_user['branch']
 
-    if user['role'] == 'accountant':
-        raise APIError('Ke toan khong co quyen xoa de xuat!', 403)
+    if role == 'accountant':
+        return jsonify({'message': 'Accountants cannot delete proposals'}), 403
 
-    conn = get_db_connection()
-    proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
-    
-    if not proposal:
-        conn.close()
-        raise APIError('De xuat khong ton tai!', 404)
-    if user['role'] == 'manager' and proposal['branch'] != user['branch']:
-        conn.close()
-        raise APIError('Ban khong co quyen xoa de xuat nay!', 403)
+    proposal = Proposal.query.get_or_404(id)
 
-    conn.execute('DELETE FROM proposals WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
+    if role != 'admin' and proposal.branch != branch:
+        return jsonify({'message': 'Unauthorized access'}), 403
 
-    app.logger.info(f'Xoa de xuat ID {id} boi nguoi dung: {user["username"]}')
-    return '', 204
+    db.session.delete(proposal)
+    db.session.commit()
+    return jsonify({'message': 'Proposal deleted'})
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=app.config['PORT'])
+```
