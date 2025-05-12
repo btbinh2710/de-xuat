@@ -323,17 +323,25 @@
                     <tr>
                         <th data-sort="id">STT <span class="sort-icon"></span></th>
                         <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
+                        <th data-sort="room">Phòng ban <span class="sort-icon"></span></th>
+                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
                         <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
                         <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
                         <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
                         <th data-sort="proposal">Đề xuất <span class="sort-icon"></span></th>
                         <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
+                        <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
                         <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
                         <th data-sort="estimated_cost">Dự tính <span class="sort-icon"></span></th>
+                        <th data-sort="budget">Ngân sách <span class="sort-icon"></span></th>
                         <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
+                        <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
                         <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
+                        <th data-sort="status">Trạng thái <span class="sort-icon"></span></th>
+                        <th data-sort="approver">Người duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="approval_date">Ngày duyệt <span class="sort-icon"></span></th>
                         <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
-                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
                         <th class="no-print">Hành động</th>
                     </tr>
                 </thead>
@@ -415,7 +423,7 @@
                 });
                 return true;
             } catch (error) {
-                const errMsg = error.response?.data?.error || 'Unknown error';
+                const errMsg = error.response?.data?.message || 'Unknown error';
                 if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
                     localStorage.clear();
                     currentUser = null;
@@ -440,30 +448,46 @@
             axios.get(`${API_URL}/proposals`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
-            .then(response => {
-                const userData = {
-                    username: localStorage.getItem('username'),
-                    branch: localStorage.getItem('branch'),
-                    role: localStorage.getItem('role')
-                };
-                if (!userData.username || !userData.role) {
-                    throw new Error('Thông tin người dùng không đầy đủ trong localStorage');
-                }
-                currentUser = userData;
-                document.getElementById('mainContent').classList.remove('hidden');
-                document.getElementById('loginFormContainer').classList.add('hidden');
-                document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
-                document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
-                document.querySelectorAll('.admin-only').forEach(el => {
-                    el.classList.toggle('hidden', currentUser.role !== 'admin');
+                .then(response => {
+                    const userData = {
+                        username: localStorage.getItem('username'),
+                        branch: localStorage.getItem('branch'),
+                        role: localStorage.getItem('role')
+                    };
+                    if (!userData.username || !userData.role) {
+                        throw new Error('Thông tin người dùng không đầy đủ trong localStorage');
+                    }
+                    currentUser = userData;
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
+                    document.getElementById('userBranch').textContent = currentUser.role === 'admin' ? 'Tất cả (Admin)' : `Chi nhánh: ${currentUser.branch}`;
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.classList.toggle('hidden', currentUser.role !== 'admin');
+                    });
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi xác thực token:', error.message);
+                    if (error.response) {
+                        const errMsg = error.response.data?.message || 'Lỗi không xác định';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } else {
+                            alert(`Lỗi xác thực: ${errMsg}`);
+                        }
+                    } else if (error.request) {
+                        console.error('Không nhận được phản hồi từ server:', error.request);
+                        alert('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.');
+                    } else {
+                        console.error('Lỗi khác:', error.message);
+                        alert(`Lỗi: ${error.message}`);
+                    }
+                    localStorage.clear();
+                    showLoginForm();
                 });
-                loadProposalData();
-            })
-            .catch(error => {
-                localStorage.clear();
-                showLoginForm();
-                console.error('Lỗi xác thực token:', error.message);
-            });
         }
 
         function showLoginForm() {
@@ -529,13 +553,6 @@
                 });
             }
 
-            const saveEditBtn = document.getElementById('saveEditBtn');
-            if (saveEditBtn) {
-                saveEditBtn.addEventListener('click', function() {
-                    saveEditChanges();
-                });
-            }
-
             const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
             if (downloadTemplateBtn) {
                 downloadTemplateBtn.addEventListener('click', function() {
@@ -592,7 +609,17 @@
                     loadProposalData();
                 })
                 .catch(error => {
-                    showLoginError(error.response?.data?.error || 'Lỗi đăng nhập!');
+                    console.error('Lỗi đăng nhập:', error.message);
+                    let errMsg = 'Lỗi đăng nhập!';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                    } else if (error.request) {
+                        console.error('Không nhận được phản hồi từ server:', error.request);
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                    } else {
+                        errMsg = error.message;
+                    }
+                    showLoginError(errMsg);
                 });
         }
 
@@ -621,13 +648,22 @@
                     renderPagination();
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
-                        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    console.error('Lỗi khi tải dữ liệu:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } else {
+                            alert(`Lỗi khi tải dữ liệu: ${errMsg}`);
+                        }
+                    } else if (error.request) {
+                        console.error('Không nhận được phản hồi từ server:', error.request);
+                        alert('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.');
                     } else {
-                        alert('Lỗi khi tải dữ liệu: ' + errMsg);
+                        alert(`Lỗi: ${error.message}`);
                     }
                 });
         }
@@ -643,7 +679,7 @@
             const currentPageData = filteredProposals.slice(startIndex, endIndex);
             
             if (currentPageData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="14" class="text-center">Không có dữ liệu</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="22" class="text-center">Không có dữ liệu</td></tr>`;
                 return;
             }
             
@@ -668,17 +704,25 @@
                 row.innerHTML = `
                     <td>${proposal.id}</td>
                     <td>${sanitizeHTML(proposal.proposer || '')}</td>
+                    <td>${sanitizeHTML(proposal.room || '')}</td>
+                    <td>${sanitizeHTML(proposal.branch || '')}</td>
                     <td>${sanitizeHTML(proposal.department || '')}</td>
                     <td>${proposal.date ? new Date(proposal.date).toLocaleDateString('vi-VN') : ''}</td>
                     <td>${sanitizeHTML(proposal.code || '')}</td>
                     <td>${sanitizeHTML(proposal.proposal || '')}</td>
                     <td>${sanitizeHTML(proposal.content || '')}</td>
+                    <td>${sanitizeHTML(proposal.purpose || '')}</td>
                     <td>${sanitizeHTML(proposal.supplier || '')}</td>
                     <td>${formatCurrency(proposal.estimated_cost)}</td>
+                    <td>${formatCurrency(proposal.budget)}</td>
                     <td>${formatCurrency(proposal.approved_amount)}</td>
+                    <td>${sanitizeHTML(proposal.transfer_code || '')}</td>
+                    <td>${proposal.payment_date ? new Date(proposal.payment_date).toLocaleDateString('vi-VN') : ''}</td>
                     <td>${sanitizeHTML(proposal.notes || '')}</td>
-                    <td>${proposal.completed || ''}</td>
-                    <td>${sanitizeHTML(proposal.branch || '')}</td>
+                    <td>${sanitizeHTML(proposal.status || '')}</td>
+                    <td>${sanitizeHTML(proposal.approver || '')}</td>
+                    <td>${proposal.approval_date ? new Date(proposal.approval_date).toLocaleDateString('vi-VN') : ''}</td>
+                    <td>${sanitizeHTML(proposal.completed || '')}</td>
                     <td class="no-print">
                         <button class="btn btn-primary btn-sm edit-btn" data-id="${proposal.id}" aria-label="Edit proposal details">
                             <i class="bi bi-pencil"></i> Sửa
@@ -803,7 +847,7 @@
                     valueB = valueB.toLowerCase();
                 }
                 
-                if (currentSortColumn === "date") {
+                if (currentSortColumn === "date" || currentSortColumn === "payment_date" || currentSortColumn === "approval_date") {
                     valueA = new Date(valueA);
                     valueB = new Date(valueB);
                 }
@@ -836,7 +880,7 @@
                     }
                     const editModal = new bootstrap.Modal(document.createElement('div'));
                     editModal._element.innerHTML = `
-                        <div class="modal-dialog">
+                        <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header bg-primary text-white">
                                     <h5 class="modal-title">Chỉnh sửa đề xuất</h5>
@@ -845,53 +889,105 @@
                                 <div class="modal-body">
                                     <form id="editForm">
                                         <input type="hidden" id="editProposalId" value="${proposal.id}">
-                                        <div class="mb-3">
-                                            <label class="form-label">Người đề nghị</label>
-                                            <input type="text" class="form-control" id="editProposer" value="${proposal.proposer || ''}" required>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Người đề nghị</label>
+                                                <input type="text" class="form-control" id="editProposer" value="${proposal.proposer || ''}" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Phòng ban</label>
+                                                <input type="text" class="form-control" id="editRoom" value="${proposal.room || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Bộ phận</label>
-                                            <input type="text" class="form-control" id="editDepartment" value="${proposal.department || ''}" required>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Chi nhánh</label>
+                                                <input type="text" class="form-control" id="editBranch" value="${proposal.branch || ''}" readonly>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Bộ phận</label>
+                                                <input type="text" class="form-control" id="editDepartment" value="${proposal.department || ''}" required>
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Ngày tháng</label>
-                                            <input type="date" class="form-control" id="editDate" value="${proposal.date || ''}" required>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Ngày tháng</label>
+                                                <input type="date" class="form-control" id="editDate" value="${proposal.date || ''}" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Mã số đề xuất</label>
+                                                <input type="text" class="form-control" id="editCode" value="${proposal.code || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Mã số đề xuất</label>
-                                            <input type="text" class="form-control" id="editCode" value="${proposal.code || ''}">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Đề xuất</label>
+                                                <input type="text" class="form-control" id="editProposal" value="${proposal.proposal || ''}" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Nội dung</label>
+                                                <input type="text" class="form-control" id="editContent" value="${proposal.content || ''}" required>
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Đề xuất</label>
-                                            <input type="text" class="form-control" id="editProposal" value="${proposal.proposal || ''}" required>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Mục đích</label>
+                                                <input type="text" class="form-control" id="editPurpose" value="${proposal.purpose || ''}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Nhà cung cấp</label>
+                                                <input type="text" class="form-control" id="editSupplier" value="${proposal.supplier || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Nội dung</label>
-                                            <input type="text" class="form-control" id="editContent" value="${proposal.content || ''}" required>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Dự tính</label>
+                                                <input type="number" class="form-control" id="editEstimatedCost" value="${proposal.estimated_cost || 0}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Ngân sách</label>
+                                                <input type="number" class="form-control" id="editBudget" value="${proposal.budget || 0}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Nhà cung cấp</label>
-                                            <input type="text" class="form-control" id="editSupplier" value="${proposal.supplier || ''}">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Số tiền được duyệt</label>
+                                                <input type="number" class="form-control" id="editApprovedAmount" value="${proposal.approved_amount || 0}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Mã chuyển khoản</label>
+                                                <input type="text" class="form-control" id="editTransferCode" value="${proposal.transfer_code || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Dự tính</label>
-                                            <input type="number" class="form-control" id="editEstimatedCost" value="${proposal.estimated_cost || 0}">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Ngày thanh toán</label>
+                                                <input type="date" class="form-control" id="editPaymentDate" value="${proposal.payment_date || ''}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Ghi chú</label>
+                                                <input type="text" class="form-control" id="editNotes" value="${proposal.notes || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Số tiền được duyệt</label>
-                                            <input type="number" class="form-control" id="editApprovedAmount" value="${proposal.approved_amount || 0}">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Trạng thái</label>
+                                                <input type="text" class="form-control" id="editStatus" value="${proposal.status || ''}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Người duyệt</label>
+                                                <input type="text" class="form-control" id="editApprover" value="${proposal.approver || ''}">
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Ghi chú</label>
-                                            <input type="text" class="form-control" id="editNotes" value="${proposal.notes || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Hoàn thành</label>
-                                            <input type="text" class="form-control" id="editCompleted" value="${proposal.completed || ''}">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Chi nhánh</label>
-                                            <input type="text" class="form-control" id="editBranch" value="${proposal.branch || ''}" readonly>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Ngày duyệt</label>
+                                                <input type="date" class="form-control" id="editApprovalDate" value="${proposal.approval_date || ''}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Hoàn thành</label>
+                                                <input type="text" class="form-control" id="editCompleted" value="${proposal.completed || ''}">
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
@@ -905,25 +1001,33 @@
                     document.body.appendChild(editModal._element);
                     editModal.show();
 
-                    const saveEditBtn = document.getElementById('saveEditBtn');
+                    const saveEditBtn = editModal._element.querySelector('#saveEditBtn');
                     if (saveEditBtn) {
                         saveEditBtn.addEventListener('click', function() {
-                            saveEditChanges();
-                            editModal.hide();
+                            saveEditChanges(editModal);
                         });
                     }
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    alert('Lỗi khi tải đề xuất: ' + errMsg);
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else if (error.request) {
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                    } else {
+                        errMsg = error.message;
                     }
+                    alert(`Lỗi khi tải đề xuất: ${errMsg}`);
                 });
         }
 
-        function saveEditChanges() {
+        function saveEditChanges(modal) {
             const form = document.getElementById('editForm');
             if (!form || !form.checkValidity()) {
                 form.reportValidity();
@@ -933,15 +1037,24 @@
             const proposalId = parseInt(document.getElementById('editProposalId').value);
             const updatedProposal = {
                 proposer: document.getElementById('editProposer').value,
+                room: document.getElementById('editRoom').value,
+                branch: document.getElementById('editBranch').value,
                 department: document.getElementById('editDepartment').value,
                 date: document.getElementById('editDate').value,
                 code: document.getElementById('editCode').value,
                 proposal: document.getElementById('editProposal').value,
                 content: document.getElementById('editContent').value,
+                purpose: document.getElementById('editPurpose').value,
                 supplier: document.getElementById('editSupplier').value,
                 estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
+                budget: parseFloat(document.getElementById('editBudget').value) || 0,
                 approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || 0,
+                transfer_code: document.getElementById('editTransferCode').value,
+                payment_date: document.getElementById('editPaymentDate').value,
                 notes: document.getElementById('editNotes').value,
+                status: document.getElementById('editStatus').value,
+                approver: document.getElementById('editApprover').value,
+                approval_date: document.getElementById('editApprovalDate').value,
                 completed: document.getElementById('editCompleted').value
             };
             
@@ -950,18 +1063,26 @@
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(() => {
-                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-                    editModal.hide();
+                    modal.hide();
                     alert('Đã cập nhật đề xuất!');
                     loadProposalData();
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    alert('Lỗi khi cập nhật: ' + errMsg);
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
+                    console.error('Lỗi khi cập nhật:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else if (error.request) {
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                    } else {
+                        errMsg = error.message;
                     }
+                    alert(`Lỗi khi cập nhật: ${errMsg}`);
                 });
         }
 
@@ -1002,12 +1123,21 @@
                     deleteModal.show();
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    alert('Lỗi khi tải đề xuất: ' + errMsg);
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else if (error.request) {
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                    } else {
+                        errMsg = error.message;
                     }
+                    alert(`Lỗi khi tải đề xuất: ${errMsg}`);
                 });
         }
 
@@ -1028,16 +1158,23 @@
                     loadProposalData();
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
-                        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                    } else if (errMsg.includes('unauthorized')) {
-                        alert('Bạn không có quyền xóa đề xuất này! Vui lòng kiểm tra chi nhánh hoặc vai trò của bạn.');
+                    console.error('Lỗi khi xóa:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } else if (errMsg.includes('unauthorized')) {
+                            alert('Bạn không có quyền xóa đề xuất này! Vui lòng kiểm tra chi nhánh hoặc vai trò của bạn.');
+                        }
+                    } else if (error.request) {
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
                     } else {
-                        alert('Lỗi khi xóa: ' + errMsg);
+                        errMsg = error.message;
                     }
+                    alert(`Lỗi khi xóa: ${errMsg}`);
                 });
         }
 
@@ -1098,17 +1235,25 @@
                         
                         const formattedProposal = {
                             proposer: proposal["NGƯỜI ĐỀ NGHỊ"] || '',
+                            room: proposal["PHÒNG BAN"] || '',
+                            branch: currentUser.branch,
                             department: proposal["BỘ PHẬN"] || '',
                             date: proposal["NGÀY THÁNG"] || '',
                             code: proposal["MÃ SỐ ĐỀ XUẤT"] || '',
                             proposal: proposal["ĐỀ XUẤT"] || '',
                             content: proposal["NỘI DUNG"] || '',
+                            purpose: proposal["MỤC ĐÍCH"] || '',
                             supplier: proposal["NHÀ CUNG CẤP"] || '',
                             estimated_cost: parseFloat(proposal["DỰ TÍNH"]) || 0,
+                            budget: parseFloat(proposal["NGÂN SÁCH"]) || 0,
                             approved_amount: parseFloat(proposal["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0,
+                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"] || '',
+                            payment_date: proposal["NGÀY THANH TOÁN"] || '',
                             notes: proposal["GHI CHÚ"] || '',
-                            completed: proposal["HOÀN THÀNH"] || '',
-                            branch: currentUser.branch
+                            status: proposal["TRẠNG THÁI"] || '',
+                            approver: proposal["NGƯỜI DUYỆT"] || '',
+                            approval_date: proposal["NGÀY DUYỆT"] || '',
+                            completed: proposal["HOÀN THÀNH"] || ''
                         };
                         
                         const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
@@ -1137,12 +1282,21 @@
                             }
                         })
                         .catch(error => {
-                            const errMsg = error.response?.data?.error || 'Unknown error';
-                            showUploadError('Lỗi khi tải lên đề xuất: ' + errMsg);
-                            if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                                localStorage.clear();
-                                showLoginForm();
+                            console.error('Lỗi khi tải lên:', error.message);
+                            let errMsg = 'Lỗi không xác định';
+                            if (error.response) {
+                                errMsg = error.response.data?.message || 'Lỗi server';
+                                if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                                    localStorage.clear();
+                                    showLoginForm();
+                                    alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                                }
+                            } else if (error.request) {
+                                errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                            } else {
+                                errMsg = error.message;
                             }
+                            showUploadError(`Lỗi khi tải lên đề xuất: ${errMsg}`);
                         });
                 } catch (error) {
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
@@ -1183,13 +1337,15 @@
         function downloadExcelTemplate() {
             const wb = XLSX.utils.book_new();
             const headers = [
-                "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", "HOÀN THÀNH"
+                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "CHI NHÁNH", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
+                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH", "NGÂN SÁCH", "SỐ TIỀN ĐƯỢC DUYỆT", 
+                "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "GHI CHÚ", "TRẠNG THÁI", "NGƯỜI DUYỆT", "NGÀY DUYỆT", 
+                "HOÀN THÀNH"
             ];
             const sampleData = [
                 headers,
-                ["Nguyễn Văn A", "KD", new Date().toISOString().split('T')[0], "", "Mua laptop", "Mua laptop phục vụ công việc", "Công ty ABC", 15000000, 0, "", ""],
-                ["Trần Thị B", "HCNS", new Date().toISOString().split('T')[0], "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Công ty XYZ", 5000000, 0, "", ""]
+                ["Nguyễn Văn A", "Kinh Doanh", "Chi Nhánh 1", "KD", new Date().toISOString().split('T')[0], "", "Mua laptop", "Mua laptop phục vụ công việc", "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, 20000000, 0, "", "", "", "Đang chờ duyệt", "", "", ""],
+                ["Trần Thị B", "Hành Chính Nhân Sự", "Chi Nhánh 2", "HCNS", new Date().toISOString().split('T')[0], "", "Mua máy in", "Mua máy in phục vụ văn phòng", "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, 10000000, 0, "", "", "", "Đang chờ duyệt", "", "", ""]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -1209,34 +1365,48 @@
                     }
                     const wb = XLSX.utils.book_new();
                     const headers = [
-                        "STT", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "ĐỀ XUẤT", 
-                        "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH", "SỐ TIỀN ĐƯỢC DUYỆT", "GHI CHÚ", 
-                        "HOÀN THÀNH", "CHI NHÁNH"
+                        "STT", "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "CHI NHÁNH", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", 
+                        "ĐỀ XUẤT", "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH", "NGÂN SÁCH", 
+                        "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "GHI CHÚ", "TRẠNG THÁI", 
+                        "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH"
                     ];
                     const data = [headers];
                     filteredData.forEach((item, index) => {
                         data.push([
-                            index + 1, item.proposer || '', item.department || '', item.date || '',
-                            item.code || '', item.proposal || '', item.content || '', item.supplier || '',
-                            item.estimated_cost || 0, item.approved_amount || 0, item.notes || '',
-                            item.completed || '', item.branch || ''
+                            index + 1,
+                            item.proposer || '', item.room || '', item.branch || '', item.department || '', 
+                            item.date || '', item.code || '', item.proposal || '', item.content || '', 
+                            item.purpose || '', item.supplier || '', item.estimated_cost || 0, item.budget || 0, 
+                            item.approved_amount || 0, item.transfer_code || '', item.payment_date || '', 
+                            item.notes || '', item.status || '', item.approver || '', item.approval_date || '', 
+                            item.completed || ''
                         ]);
                     });
                     const totalEstimated = filteredData.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
+                    const totalBudget = filteredData.reduce((sum, item) => sum + (item.budget || 0), 0);
                     const totalApproved = filteredData.reduce((sum, item) => sum + (item.approved_amount || 0), 0);
                     data.push([]);
-                    data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", totalEstimated, totalApproved, "", "", ""]);
+                    data.push(["TỔNG CỘNG", "", "", "", "", "", "", "", "", "", totalEstimated, totalBudget, totalApproved, "", "", "", "", "", "", "", ""]);
                     const ws = XLSX.utils.aoa_to_sheet(data);
                     XLSX.utils.book_append_sheet(wb, ws, `Báo cáo ${branchType}`);
                     XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().slice(0, 10)}.xlsx`);
                 })
                 .catch(error => {
-                    const errMsg = error.response?.data?.error || 'Unknown error';
-                    alert('Lỗi khi xuất báo cáo: ' + errMsg);
-                    if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
-                        localStorage.clear();
-                        showLoginForm();
+                    console.error('Lỗi khi xuất báo cáo:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else if (error.request) {
+                        errMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc trạng thái server.';
+                    } else {
+                        errMsg = error.message;
                     }
+                    alert(`Lỗi khi xuất báo cáo: ${errMsg}`);
                 });
         }
 
