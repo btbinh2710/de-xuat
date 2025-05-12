@@ -517,7 +517,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Trạng thái</label>
-                                <input type="text" class="form-control" id="editStatus">
+                                <input type="text" class="form-control" id="editStatus" readonly>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Người duyệt</label>
@@ -590,6 +590,33 @@
             return dateStr;
         }
 
+        function getStatusFromCompleted(completed) {
+            return completed === 'Yes' ? 'Đã xong' : 'Đang xử lý';
+        }
+
+        function showUploadError(message) {
+            const errorElement = document.getElementById('uploadError');
+            const successElement = document.getElementById('uploadSuccess');
+            if (errorElement && successElement) {
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+                successElement.classList.add('hidden');
+            }
+        }
+
+        function showUploadSuccess(message) {
+            const errorElement = document.getElementById('uploadError');
+            const successElement = document.getElementById('uploadSuccess');
+            if (errorElement && successElement) {
+                successElement.textContent = message;
+                successElement.classList.remove('hidden');
+                errorElement.classList.add('hidden');
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                }, 2000);
+            }
+        }
+
         async function checkTokenValidity() {
             const token = localStorage.getItem('token');
             if (!token) return false;
@@ -637,7 +664,7 @@
                     document.getElementById('mainContent').classList.remove('hidden');
                     document.getElementById('loginFormContainer').classList.add('hidden');
                     document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
-                    document.getElementById('userBranch').textContent = `Chi nhánh: ${currentUser.branch}`;
+                    document.getElementById('userBranch').textContent = currentUser.role === 'accountant' ? 'Kế toán' : `Chi nhánh: ${currentUser.branch}`;
                     loadProposalData();
                 })
                 .catch(error => {
@@ -803,6 +830,7 @@
                 }
 
                 const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
+                const status = getStatusFromCompleted(proposal.completed);
                 row.innerHTML = `
                     <td>${proposal.id}</td>
                     <td>${formatDateToDDMMYYYY(proposal.date)}</td>
@@ -819,7 +847,7 @@
                     <td>${formatCurrency(proposal.approved_amount)}</td>
                     <td>${sanitizeHTML(proposal.transfer_code || '')}</td>
                     <td>${formatDateToDDMMYYYY(proposal.payment_date)}</td>
-                    <td>${sanitizeHTML(proposal.status || '')}</td>
+                    <td>${sanitizeHTML(status)}</td>
                     <td>${sanitizeHTML(proposal.approver || '')}</td>
                     <td>${formatDateToDDMMYYYY(proposal.approval_date)}</td>
                     <td><span class="completed-btn ${proposal.completed === 'Yes' ? 'completed' : ''}" data-id="${proposal.id}">${proposal.completed === 'Yes' ? 'O' : 'X'}</span></td>
@@ -854,7 +882,10 @@
         function toggleCompleted(proposalId, currentStatus) {
             const newStatus = currentStatus === 'Yes' ? 'No' : 'Yes';
             const token = localStorage.getItem('token');
-            axios.put(`${API_URL}/proposals/${proposalId}`, { completed: newStatus }, {
+            axios.put(`${API_URL}/proposals/${proposalId}`, { 
+                completed: newStatus,
+                status: getStatusFromCompleted(newStatus)
+            }, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(() => {
@@ -1003,13 +1034,13 @@
                     document.getElementById('editCode').value = proposal.code || '';
                     document.getElementById('editContent').value = proposal.content || '';
                     document.getElementById('editPurpose').value = proposal.purpose || '';
-                    document.getElementById(' abjecteditSupplier').value = proposal.supplier || '';
+                    document.getElementById('editSupplier').value = proposal.supplier || '';
                     document.getElementById('editEstimatedCost').value = proposal.estimated_cost || 0;
                     document.getElementById('editBudget').value = proposal.budget || 0;
                     document.getElementById('editApprovedAmount').value = proposal.approved_amount || 0;
                     document.getElementById('editTransferCode').value = proposal.transfer_code || '';
                     document.getElementById('editPaymentDate').value = formatDateToDDMMYYYY(proposal.payment_date) || '';
-                    document.getElementById('editStatus').value = proposal.status || '';
+                    document.getElementById('editStatus').value = getStatusFromCompleted(proposal.completed);
                     document.getElementById('editApprover').value = proposal.approver || '';
                     document.getElementById('editApprovalDate').value = formatDateToDDMMYYYY(proposal.approval_date) || '';
                     document.getElementById('editCompleted').value = proposal.completed || '';
@@ -1043,7 +1074,7 @@
                         document.getElementById('editSupplier').removeAttribute('readonly');
                         document.getElementById('editEstimatedCost').removeAttribute('readonly');
                         document.getElementById('editBudget').removeAttribute('readonly');
-                        document.getElementById('editStatus').removeAttribute('readonly');
+                        document.getElementById('editStatus').setAttribute('readonly', 'readonly');
                         document.getElementById('editApprover').removeAttribute('readonly');
                         document.getElementById('editApprovalDate').removeAttribute('readonly');
                     }
@@ -1064,6 +1095,7 @@
             }
 
             const proposalId = parseInt(document.getElementById('editProposalId').value);
+            const completed = document.getElementById('editCompleted').value;
             const updatedProposal = {
                 proposer: document.getElementById('editProposer').value,
                 room: document.getElementById('editRoom').value,
@@ -1079,10 +1111,10 @@
                 transfer_code: document.getElementById('editTransferCode').value,
                 payment_date: document.getElementById('editPaymentDate').value,
                 notes: document.getElementById('editNotes').value,
-                status: document.getElementById('editStatus').value,
+                status: getStatusFromCompleted(completed),
                 approver: document.getElementById('editApprover').value,
                 approval_date: document.getElementById('editApprovalDate').value,
-                completed: document.getElementById('editCompleted').value
+                completed: completed
             };
 
             const token = localStorage.getItem('token');
@@ -1181,7 +1213,7 @@
                     }
 
                     const headers = jsonData[0];
-                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "MÃ SỐ ĐỀ XUẤT", "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"];
+                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"];
                     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
                     if (missingColumns.length > 0) {
@@ -1208,26 +1240,48 @@
                         });
 
                         const formattedProposal = {
-                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"] || '',
-                            room: proposal["PHÒNG BAN"] || '',
+                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"]?.toString() || '',
+                            room: proposal["PHÒNG BAN"]?.toString() || '',
                             branch: currentUser.branch,
-                            department: proposal["BỘ PHẬN"] || '',
+                            department: proposal["BỘ PHẬN"]?.toString() || '',
                             date: formatDateToDDMMYYYY(proposal["NGÀY THÁNG"]) || '',
-                            code: proposal["MÃ SỐ ĐỀ XUẤT"] || '',
-                            content: proposal["NỘI DUNG"] || '',
-                            purpose: proposal["MỤC ĐÍCH"] || '',
-                            supplier: proposal["NHÀ CUNG CẤP"] || '',
+                            code: proposal["MÃ SỐ ĐỀ XUẤT"]?.toString() || '',
+                            content: proposal["NỘI DUNG"]?.toString() || '',
+                            purpose: proposal["MỤC ĐÍCH"]?.toString() || '',
+                            supplier: proposal["NHÀ CUNG CẤP"]?.toString() || '',
                             estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
                             budget: parseFloat(proposal["NGÂN SÁCH"]) || 0,
                             approved_amount: parseFloat(proposal["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0,
-                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"] || '',
+                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"]?.toString() || '',
                             payment_date: formatDateToDDMMYYYY(proposal["NGÀY THANH TOÁN"]) || '',
-                            notes: proposal["GHI CHÚ"] || '',
-                            status: proposal["TRẠNG THÁI"] || '',
-                            approver: proposal["NGƯỜI DUYỆT"] || '',
+                            notes: proposal["GHI CHÚ"]?.toString() || '',
+                            status: getStatusFromCompleted(proposal["HOÀN THÀNH"]?.toString() || ''),
+                            approver: proposal["NGƯỜI DUYỆT"]?.toString() || '',
                             approval_date: formatDateToDDMMYYYY(proposal["NGÀY DUYỆT"]) || '',
-                            completed: proposal["HOÀN THÀNH"] || ''
+                            completed: proposal["HOÀN THÀNH"]?.toString() || ''
                         };
+
+                        // Kiểm tra các trường bắt buộc
+                        const requiredFields = [
+                            { key: 'proposer', name: 'NGƯỜI ĐỀ NGHỊ' },
+                            { key: 'room', name: 'PHÒNG BAN' },
+                            { key: 'department', name: 'BỘ PHẬN' },
+                            { key: 'date', name: 'NGÀY THÁNG' },
+                            { key: 'code', name: 'MÃ SỐ ĐỀ XUẤT' },
+                            { key: 'content', name: 'NỘI DUNG' },
+                            { key: 'supplier', name: 'NHÀ CUNG CẤP' },
+                            { key: 'estimated_cost', name: 'DỰ TÍNH NGÂN SÁCH' }
+                        ];
+                        const missingFields = requiredFields.filter(field => !formattedProposal[field.key]);
+                        if (missingFields.length > 0) {
+                            showUploadError(`Hàng ${i + 1} thiếu các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
+                            return;
+                        }
+
+                        if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
+                            showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
+                            return;
+                        }
 
                         const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
                         if (existingCodes.has(key)) {
@@ -1256,7 +1310,7 @@
                         })
                         .catch(error => {
                             console.error('Lỗi khi tải lên:', error.message);
-                            showUploadError(error.response?.data?.message || 'Lỗi khi tải lên đề xuất');
+                            showUploadError(error.response?.data?.message || 'Lỗi khi tải lên đề xuất. Vui lòng kiểm tra dữ liệu và thử lại.');
                         });
                 } catch (error) {
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
@@ -1273,17 +1327,17 @@
         function downloadExcelTemplate() {
             const wb = XLSX.utils.book_new();
             const headers = [
-                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "CHI NHÁNH", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", 
+                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", 
                 "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "NGÂN SÁCH", 
                 "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "GHI CHÚ", 
                 "TRẠNG THÁI", "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH"
             ];
             const sampleData = [
                 headers,
-                ["Nguyễn Văn A", "Kinh Doanh", "", "KD", "01/05/2025", "DX001", "Mua laptop phục vụ công việc", 
-                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, 20000000, 0, "", "", "", "Đang chờ duyệt", "", "", "No"],
-                ["Trần Thị B", "Hành Chính Nhân Sự", "", "HCNS", "02/05/2025", "DX002", "Mua máy in phục vụ văn phòng", 
-                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, 10000000, 0, "", "", "", "Đang chờ duyệt", "", "", "No"]
+                ["Nguyễn Văn A", "Kinh Doanh", "KD", "01/05/2025", "DX001", "Mua laptop phục vụ công việc", 
+                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, 20000000, 0, "", "", "", "Đang xử lý", "", "", "No"],
+                ["Trần Thị B", "Hành Chính Nhân Sự", "HCNS", "02/05/2025", "DX002", "Mua máy in phục vụ văn phòng", 
+                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, 10000000, 0, "", "", "", "Đã xong", "", "", "Yes"]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -1326,7 +1380,7 @@
                             item.approved_amount || 0,
                             item.transfer_code || '',
                             formatDateToDDMMYYYY(item.payment_date) || '',
-                            item.status || '',
+                            getStatusFromCompleted(item.completed),
                             item.approver || '',
                             formatDateToDDMMYYYY(item.approval_date) || '',
                             item.completed || '',
