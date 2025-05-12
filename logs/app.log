@@ -10,3 +10,4 @@
 2025-05-12 10:49:01,248 ERROR: HTTP Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in C:\de-xuat\app.py:201]
 2025-05-12 10:49:01,278 ERROR: HTTP Error: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again. [in C:\de-xuat\app.py:201]
 2025-05-12 14:16:06,640 INFO: Ung dung khoi dong [in C:\de-xuat\app.py:36]
+2025-05-12 16:23:02,196 INFO: Ung dung khoi dong [in C:\de-xuat\app.py:32]

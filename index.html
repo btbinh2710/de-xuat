@@ -400,7 +400,7 @@
                             <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
                         </div>
                         <div class="alert alert-info">
-                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH. Nếu TRẠNG THÁI là "Đã xong", cần thêm MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN.
+                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
                         </div>
                     </form>
                     <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
@@ -1263,13 +1263,13 @@
                             estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
                             budget: 0,
                             approved_amount: 0,
-                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"]?.toString().trim() || '',
-                            payment_date: formatDateToDDMMYYYY(proposal["NGÀY CHUYỂN KHOẢN"]) || '',
+                            transfer_code: '',
+                            payment_date: '',
                             notes: '',
-                            status: proposal["TRẠNG THÁI"]?.toString().trim() || 'Đang xử lý',
+                            status: 'Đang xử lý',
                             approver: '',
                             approval_date: '',
-                            completed: proposal["TRẠNG THÁI"] === 'Đã xong' ? 'Yes' : 'No'
+                            completed: 'No'
                         };
 
                         // Kiểm tra các trường bắt buộc
@@ -1299,18 +1299,6 @@
                         if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
                             showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
                             return;
-                        }
-
-                        // Nếu trạng thái là "Đã xong", yêu cầu MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN
-                        if (formattedProposal.status === 'Đã xong') {
-                            if (!formattedProposal.transfer_code || !formattedProposal.payment_date) {
-                                showUploadError(`Hàng ${i + 1}: Khi TRẠNG THÁI là "Đã xong", phải có MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN`);
-                                return;
-                            }
-                            if (!formattedProposal.payment_date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                                showUploadError(`Hàng ${i + 1}: NGÀY CHUYỂN KHOẢN phải có định dạng DD/MM/YYYY`);
-                                return;
-                            }
                         }
 
                         const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
@@ -1359,15 +1347,14 @@
             const wb = XLSX.utils.book_new();
             const headers = [
                 "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ ĐỀ XUẤT", 
-                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "TRẠNG THÁI",
-                "MÃ CHUYỂN KHOẢN", "NGÀY CHUYỂN KHOẢN"
+                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"
             ];
             const sampleData = [
                 headers,
                 ["Nguyễn Văn A", "Kinh Doanh", "KD", "01/05/2025", "DX001", "Mua laptop phục vụ công việc", 
-                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, "Đang xử lý", "", ""],
+                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000],
                 ["Trần Thị B", "Hành Chính Nhân Sự", "HCNS", "02/05/2025", "DX002", "Mua máy in phục vụ văn phòng", 
-                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, "Đã xong", "CK12345", "02/05/2025"]
+                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             XLSX.utils.book_append_sheet(wb, ws, "Template");
