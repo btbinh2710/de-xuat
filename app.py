@@ -57,11 +57,11 @@ class ProposalSchema(Schema):
     budget = fields.Float(allow_none=True, validate=validate.Range(min=0))
     approved_amount = fields.Float(allow_none=True, validate=validate.Range(min=0))
     transfer_code = fields.Str(allow_none=True)
-    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$', strict=True))
+    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$'))
     notes = fields.Str(allow_none=True)
     status = fields.Str(allow_none=True)
     approver = fields.Str(allow_none=True)
-    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$', strict=True))
+    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$'))
     completed = fields.Str(allow_none=True)
 
 proposal_schema = ProposalSchema()
