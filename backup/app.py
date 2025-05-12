@@ -1,4 +1,3 @@
-```python
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import jwt
@@ -13,7 +12,7 @@ from logging.handlers import RotatingFileHandler
 
 # Load environment variables
 load_dotenv()
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')  # Fallback for local dev
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -27,14 +26,20 @@ CORS(app, resources={
     }
 })
 
-# Configure logging
+# Configure logging with UTF-8 encoding
 if not os.path.exists('logs'):
     os.makedirs('logs')
+
+class UTF8Formatter(logging.Formatter):
+    def format(self, record):
+        return super().format(record).encode('utf-8', errors='replace').decode('utf-8')
+
 handler = RotatingFileHandler('logs/app.log', maxBytes=1000000, backupCount=5)
-handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+formatter = UTF8Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]')
+handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
-app.logger.info('Application started')
+app.logger.info('Ứng dụng khởi động')
 
 # Custom API Error
 class APIError(Exception):
@@ -48,7 +53,7 @@ class ProposalSchema(Schema):
     proposer = fields.Str(required=True, validate=validate.Length(min=1))
     room = fields.Str(allow_none=True)
     department = fields.Str(required=True, validate=validate.Length(min=1))
-    date = fields.Str(required=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$'))
+    date = fields.Str(required=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$'))
     code = fields.Str(allow_none=True)
     proposal = fields.Str(required=True, validate=validate.Length(min=1))
     content = fields.Str(required=True, validate=validate.Length(min=1))
@@ -58,11 +63,11 @@ class ProposalSchema(Schema):
     budget = fields.Float(allow_none=True, validate=validate.Range(min=0))
     approved_amount = fields.Float(allow_none=True, validate=validate.Range(min=0))
     transfer_code = fields.Str(allow_none=True)
-    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$', strict=True))
+    payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
     notes = fields.Str(allow_none=True)
     status = fields.Str(allow_none=True)
     approver = fields.Str(allow_none=True)
-    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$|^$', strict=True))
+    approval_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
     completed = fields.Str(allow_none=True)
 
 proposal_schema = ProposalSchema()
@@ -99,6 +104,11 @@ def format_proposal(proposal):
         'completed': proposal['completed']
     }
 
+# Health check route
+@app.route('/', methods=['GET', 'HEAD'])
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
 # Error handlers
 @app.errorhandler(APIError)
 def handle_api_error(error):
@@ -109,9 +119,9 @@ def handle_api_error(error):
 
 @app.errorhandler(Exception)
 def handle_general_error(error):
-    response = jsonify({'message': 'Internal server error', 'status_code': 500})
+    response = jsonify({'message': 'Lỗi server nội bộ', 'status_code': 500})
     response.status_code = 500
-    app.logger.error(f'Unexpected error: {str(error)}')
+    app.logger.error(f'Lỗi không mong muốn: {str(error)}')
     return response
 
 # Handle preflight requests
@@ -127,14 +137,14 @@ def handle_options(path):
 def authenticate_token():
     token = request.headers.get('Authorization', '').split(' ')[1] if 'Authorization' in request.headers else None
     if not token:
-        raise APIError('Token required', 401)
+        raise APIError('Token bắt buộc', 401)
     try:
         user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        app.logger.info(f'Token authenticated for user: {user["username"]}')
+        app.logger.info(f'Token xác thực thành công cho người dùng: {user["username"]}')
         return user, None, None
     except Exception as e:
-        app.logger.error(f'Invalid token: {str(e)}')
-        raise APIError('Invalid token', 403)
+        app.logger.error(f'Token không hợp lệ: {str(e)}')
+        raise APIError('Token không hợp lệ', 403)
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -143,14 +153,14 @@ def login():
     password = data.get('password')
 
     if not username or not password:
-        raise APIError('Username and password are required', 400)
+        raise APIError('Tên đăng nhập và mật khẩu là bắt buộc', 400)
 
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
     conn.close()
 
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        app.logger.warning(f'Failed login attempt for username: {username}')
+        app.logger.warning(f'Thử đăng nhập thất bại cho người dùng: {username}')
         raise APIError('Tên đăng nhập hoặc mật khẩu không đúng!', 401)
 
     token = jwt.encode({
@@ -160,7 +170,7 @@ def login():
         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     }, SECRET_KEY, algorithm='HS256')
 
-    app.logger.info(f'Login successful for user: {username}')
+    app.logger.info(f'Đăng nhập thành công cho người dùng: {username}')
     return jsonify({'token': token, 'role': user['role'], 'branch': user['branch']})
 
 @app.route('/api/proposals', methods=['GET'])
@@ -176,7 +186,7 @@ def get_proposals():
         proposals = conn.execute('SELECT * FROM proposals WHERE branch = ?', (user['branch'],)).fetchall()
     conn.close()
 
-    app.logger.info(f'Retrieved {len(proposals)} proposals for user: {user["username"]}')
+    app.logger.info(f'Lấy {len(proposals)} đề xuất cho người dùng: {user["username"]}')
     return jsonify([format_proposal(dict(row)) for row in proposals])
 
 @app.route('/api/proposals', methods=['POST'])
@@ -191,7 +201,7 @@ def add_proposal():
     try:
         validated_data = proposal_schema.load(data)
     except ValidationError as err:
-        raise APIError(f'Validation error: {err.messages}', 400)
+        raise APIError(f'Lỗi validation: {err.messages}', 400)
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -227,7 +237,7 @@ def add_proposal():
     new_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (new_id,)).fetchone()
     conn.close()
 
-    app.logger.info(f'Created new proposal ID {new_id} by user: {user["username"]}')
+    app.logger.info(f'Tạo đề xuất mới ID {new_id} bởi người dùng: {user["username"]}')
     return jsonify(format_proposal(dict(new_proposal))), 201
 
 @app.route('/api/proposals/<int:id>', methods=['PUT'])
@@ -251,12 +261,12 @@ def update_proposal(id):
         validated_data = proposal_schema.load(data, partial=True)
     except ValidationError as err:
         conn.close()
-        raise APIError(f'Validation error: {err.messages}', 400)
+        raise APIError(f'Lỗi validation: {err.messages}', 400)
 
     update_fields = {k: v for k, v in validated_data.items() if v is not None}
     if not update_fields:
         conn.close()
-        raise APIError('No fields to update', 400)
+        raise APIError('Không có trường nào để cập nhật', 400)
 
     query = 'UPDATE proposals SET ' + ', '.join(f'{k} = ?' for k in update_fields.keys()) + ' WHERE id = ?'
     values = list(update_fields.values()) + [id]
@@ -266,7 +276,7 @@ def update_proposal(id):
     updated_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
     conn.close()
 
-    app.logger.info(f'Updated proposal ID {id} by user: {user["username"]}')
+    app.logger.info(f'Cập nhật đề xuất ID {id} bởi người dùng: {user["username"]}')
     return jsonify(format_proposal(dict(updated_proposal)))
 
 @app.route('/api/proposals/<int:id>', methods=['DELETE'])
@@ -289,9 +299,9 @@ def delete_proposal(id):
     conn.commit()
     conn.close()
 
-    app.logger.info(f'Deleted proposal ID {id} by user: {user["username"]}')
+    app.logger.info(f'Xóa đề xuất ID {id} bởi người dùng: {user["username"]}')
     return '', 204
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
-```
+    port = int(os.getenv('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
