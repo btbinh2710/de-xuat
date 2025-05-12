@@ -98,6 +98,11 @@ def format_proposal(proposal):
         'completed': proposal['completed']
     }
 
+# Health check route
+@app.route('/', methods=['GET', 'HEAD'])
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
 # Error handlers
 @app.errorhandler(APIError)
 def handle_api_error(error):
@@ -119,7 +124,7 @@ def handle_options(path):
     response = make_response()
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Authorization', 'Content-Type')
     return response
 
 # Authenticate token
@@ -292,4 +297,5 @@ def delete_proposal(id):
     return '', 204
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    port = int(os.getenv('PORT', 10000))  # Use PORT from environment, fallback to 10000
+    app.run(host='0.0.0.0', port=port)
