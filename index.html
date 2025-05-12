@@ -37,14 +37,14 @@
         }
         return gk_fileData[filename] || "";
         }
-        </script><!DOCTYPE html>
+        </script>```html
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
-    <!-- CSS files -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -594,26 +594,35 @@
         }
 
         function showUploadError(message) {
+            console.log('showUploadError:', message);
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            if (errorElement && successElement) {
-                errorElement.textContent = message;
-                errorElement.classList.remove('hidden');
-                successElement.classList.add('hidden');
+            if (!errorElement || !successElement) {
+                console.error('Lỗi: Không tìm thấy uploadError hoặc uploadSuccess trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo lỗi. Vui lòng thử lại.');
+                return;
             }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            successElement.classList.add('hidden');
         }
 
         function showUploadSuccess(message) {
+            console.log('showUploadSuccess:', message);
             const errorElement = document.getElementById('uploadError');
             const successElement = document.getElementById('uploadSuccess');
-            if (errorElement && successElement) {
-                successElement.textContent = message;
-                successElement.classList.remove('hidden');
-                errorElement.classList.add('hidden');
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
-                }, 2000);
+            if (!errorElement || !successElement) {
+                console.error('Lỗi: Không tìm thấy uploadError hoặc uploadSuccess trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo thành công. Vui lòng thử lại.');
+                return;
             }
+            successElement.textContent = message;
+            successElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                if (modal) modal.hide();
+            }, 2000);
         }
 
         async function checkTokenValidity() {
@@ -678,7 +687,10 @@
             document.getElementById('mainContent').classList.add('hidden');
             document.getElementById('loginFormContainer').classList.remove('hidden');
             document.getElementById('loginForm')?.reset();
-            document.getElementById('loginError')?.classList.add('hidden');
+            const errorElement = document.getElementById('loginError');
+            if (errorElement) {
+                errorElement.classList.add('hidden');
+            }
         }
 
         function initEventListeners() {
@@ -765,11 +777,15 @@
         }
 
         function showLoginError(message) {
+            console.log('showLoginError:', message);
             const errorElement = document.getElementById('loginError');
-            if (errorElement) {
-                errorElement.textContent = message;
-                errorElement.classList.remove('hidden');
+            if (!errorElement) {
+                console.error('Lỗi: Không tìm thấy loginError trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo lỗi. Vui lòng thử lại.');
+                return;
             }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
         }
 
         function loadProposalData() {
@@ -1191,32 +1207,39 @@
         }
 
         function handleExcelUpload() {
+            console.log('Bắt đầu handleExcelUpload');
             if (!currentUser) {
+                console.error('Lỗi: currentUser không tồn tại');
                 showUploadError("Vui lòng đăng nhập để tải lên đề xuất!");
                 return;
             }
+            console.log('currentUser:', currentUser);
             if (currentUser.role === 'accountant') {
+                console.error('Lỗi: Tài khoản kế toán không được phép tải lên');
                 showUploadError("Tài khoản kế toán không được phép tải lên đề xuất!");
                 return;
             }
             const fileInput = document.getElementById('excelFile');
             const file = fileInput.files[0];
-
             if (!file) {
+                console.error('Lỗi: Không có file Excel được chọn');
                 showUploadError("Vui lòng chọn file Excel!");
                 return;
             }
-
+            console.log('File được chọn:', file.name);
             const reader = new FileReader();
             reader.onload = function(e) {
+                console.log('Đọc file Excel thành công');
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    console.log('Dữ liệu Excel:', jsonData);
 
                     if (jsonData.length < 2) {
+                        console.error('Lỗi: File Excel không chứa dữ liệu');
                         showUploadError("File không chứa dữ liệu hoặc không đúng định dạng!");
                         return;
                     }
@@ -1226,12 +1249,14 @@
                     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
                     if (missingColumns.length > 0) {
+                        console.error('Lỗi: Thiếu cột bắt buộc', missingColumns);
                         showUploadError(`File thiếu các cột bắt buộc: ${missingColumns.join(', ')}`);
                         return;
                     }
 
                     const token = localStorage.getItem('token');
                     if (!token) {
+                        console.error('Lỗi: Token không tồn tại');
                         showUploadError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
                         return;
                     }
@@ -1287,16 +1312,19 @@
                         ];
                         const missingFields = requiredFields.filter(field => !formattedProposal[field.key] || formattedProposal[field.key].trim() === '');
                         if (missingFields.length > 0) {
+                            console.error(`Lỗi: Hàng ${i + 1} thiếu trường bắt buộc`, missingFields);
                             showUploadError(`Hàng ${i + 1} thiếu các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
                             return;
                         }
 
                         if (formattedProposal.date && !formattedProposal.date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                            console.error(`Lỗi: Hàng ${i + 1} NGÀY THÁNG sai định dạng`);
                             showUploadError(`Hàng ${i + 1}: NGÀY THÁNG phải có định dạng DD/MM/YYYY`);
                             return;
                         }
 
                         if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
+                            console.error(`Lỗi: Hàng ${i + 1} DỰ TÍNH NGÂN SÁCH không hợp lệ`);
                             showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
                             return;
                         }
@@ -1313,12 +1341,14 @@
                     }
 
                     if (newProposals.length === 0) {
+                        console.error('Lỗi: Không có đề xuất mới để tải lên');
                         showUploadError("Không có đề xuất mới để tải lên hoặc tất cả đề xuất trùng lặp!");
                         return;
                     }
 
                     Promise.all(newProposals)
                         .then(() => {
+                            console.log('Tải lên thành công', newProposals.length, 'đề xuất');
                             showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
                             fileInput.value = '';
                             loadProposalData();
@@ -1327,16 +1357,18 @@
                             }
                         })
                         .catch(error => {
-                            console.error('Lỗi khi tải lên:', error.message);
+                            console.error('Lỗi khi gửi yêu cầu POST /api/proposals:', error);
                             const errorMessage = error.response?.data?.message || 'Lỗi khi tải lên đề xuất. Vui lòng kiểm tra dữ liệu và thử lại.';
                             showUploadError(`Lỗi server: ${errorMessage}`);
                         });
                 } catch (error) {
+                    console.error('Lỗi xử lý file Excel:', error);
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
                 }
             };
 
             reader.onerror = function() {
+                console.error('Lỗi đọc file Excel');
                 showUploadError("Lỗi khi đọc file!");
             };
 
@@ -1427,3 +1459,4 @@
     </script>
 </body>
 </html>
+```
