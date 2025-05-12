@@ -67,7 +67,6 @@ def init_db():
             ('accountant', 'accountant123', 'Accountant', 'accountant'),
             ('xdv_thaodien_manager1', 'manager123', 'XDV_ThaoDien', 'manager'),
             ('xdv_thaodien_employee1', 'employee123', 'XDV_ThaoDien', 'employee'),
-            # Thêm các người dùng khác nếu cần
         ]
         for user in users:
             username, password, branch, role = user
@@ -123,15 +122,11 @@ def login():
         data = request.get_json()
         if not data or 'username' not in data or 'password' not in data:
             return jsonify({'message': 'Missing username or password'}), 400
-
         username = data.get('username')
         password = data.get('password')
-
         conn = get_db_connection()
         if not conn:
             return jsonify({'message': 'Database connection failed'}), 500
-
-        # Kiểm tra và khởi tạo bảng users nếu chưa tồn tại
         c = conn.cursor()
         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         if not c.fetchone():
@@ -141,13 +136,10 @@ def login():
             conn = get_db_connection()
             if not conn:
                 return jsonify({'message': 'Database connection failed after initialization'}), 500
-
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         if not user:
             conn.close()
             return jsonify({'message': 'Invalid credentials!'}), 401
-
-        # Kiểm tra mật khẩu
         if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
             token = jwt.encode({
                 'username': username,
@@ -165,7 +157,7 @@ def login():
             return jsonify({'message': 'Invalid credentials!'}), 401
     except Exception as e:
         app.logger.error(f"Login error: {str(e)}")
-        return jsonify({'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals', methods=['GET'])
 @token_required
@@ -174,12 +166,10 @@ def get_proposals(current_user):
         conn = get_db_connection()
         if not conn:
             return jsonify({'message': 'Database connection failed'}), 500
-
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         if not user:
             conn.close()
             return jsonify({'message': 'User not found!'}), 404
-
         if user['role'] == 'accountant':
             proposals = conn.execute('SELECT * FROM proposals').fetchall()
         else:
@@ -188,7 +178,7 @@ def get_proposals(current_user):
         return jsonify([dict(row) for row in proposals])
     except Exception as e:
         app.logger.error(f"Get proposals error: {str(e)}")
-        return jsonify({'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals', methods=['POST'])
 @token_required
@@ -199,20 +189,16 @@ def create_proposal(current_user):
         data = request.get_json()
         schema = ProposalSchema()
         validated_data = schema.load(data)
-
         conn = get_db_connection()
         if not conn:
             return jsonify({'message': 'Database connection failed'}), 500
-
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         if not user:
             conn.close()
             return jsonify({'message': 'User not found!'}), 404
-
         if user['role'] == 'accountant':
             conn.close()
             return jsonify({'message': 'Accountants cannot create proposals!'}), 403
-
         validated_data['branch'] = user['branch']
         conn.execute('''
             INSERT INTO proposals (proposer, room, branch, department, date, code, content, purpose, supplier, 
@@ -236,7 +222,7 @@ def create_proposal(current_user):
         return jsonify({'message': 'Proposal code already exists for this branch!'}), 400
     except Exception as e:
         app.logger.error(f"Create proposal error: {str(e)}")
-        return jsonify({'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals/<int:id>', methods=['PUT'])
 @token_required
@@ -245,31 +231,25 @@ def update_proposal(current_user, id):
         data = request.get_json()
         schema = ProposalSchema()
         validated_data = schema.load(data, partial=True)
-
         conn = get_db_connection()
         if not conn:
             return jsonify({'message': 'Database connection failed'}), 500
-
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
-
         if not user:
             conn.close()
             return jsonify({'message': 'User not found!'}), 404
         if not proposal:
             conn.close()
             return jsonify({'message': 'Proposal not found!'}), 404
-
         if user['role'] != 'admin' and user['branch'] != proposal['branch'] and user['role'] != 'accountant':
             conn.close()
             return jsonify({'message': 'Unauthorized!'}), 403
-
         if user['role'] == 'accountant':
             allowed_fields = ['approved_amount', 'transfer_code', 'payment_date', 'notes', 'completed', 'status']
             validated_data = {k: v for k, v in validated_data.items() if k in allowed_fields}
         else:
             validated_data.pop('branch', None)
-
         query = 'UPDATE proposals SET ' + ', '.join(f'{k} = ?' for k in validated_data.keys()) + ' WHERE id = ?'
         values = list(validated_data.values()) + [id]
         conn.execute(query, values)
@@ -280,7 +260,7 @@ def update_proposal(current_user, id):
         return jsonify({'message': err.messages}), 400
     except Exception as e:
         app.logger.error(f"Update proposal error: {str(e)}")
-        return jsonify({'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals/<int:id>', methods=['DELETE'])
 @token_required
@@ -289,34 +269,29 @@ def delete_proposal(current_user, id):
         conn = get_db_connection()
         if not conn:
             return jsonify({'message': 'Database connection failed'}), 500
-
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
-
         if not user:
             conn.close()
             return jsonify({'message': 'User not found!'}), 404
         if not proposal:
             conn.close()
             return jsonify({'message': 'Proposal not found!'}), 404
-
         if user['role'] == 'accountant':
             conn.close()
             return jsonify({'message': 'Accountants cannot delete proposals!'}), 403
-
         if user['role'] != 'admin' and user['branch'] != proposal['branch']:
             conn.close()
             return jsonify({'message': 'Unauthorized!'}), 403
-
         conn.execute('DELETE FROM proposals WHERE id = ?', (id,))
         conn.commit()
         conn.close()
         return jsonify({'message': 'Proposal deleted successfully!'})
     except Exception as e:
         app.logger.error(f"Delete proposal error: {str(e)}")
-        return jsonify({'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 if __name__ == '__main__':
-    init_db()  # Khởi tạo cơ sở dữ liệu khi chạy cục bộ
+    init_db()
     port = int(os.getenv('PORT', 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
