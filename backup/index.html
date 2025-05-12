@@ -149,7 +149,7 @@
             color: #fff;
         }
         .login-logo {
-            bmp3play: block;
+            display: block;
             margin: 0 auto 10px;
             max-width: 200px;
             height: auto;
@@ -575,7 +575,7 @@
 
             if (currentPageData.length === 0) {
                 console.log('Không có dữ liệu để hiển thị');
-                tableBody.innerHTML = `<tr><td colspan="21" class="text-center">Không có dữ liệu</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="19" class="text-center">Không có dữ liệu</td></tr>`;
                 return;
             }
 
@@ -598,40 +598,49 @@
 
                 const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
                 const status = getStatusFromCompleted(proposal.completed);
+                const isBranchUser = currentUser.role !== 'accountant';
+                const isCompleted = proposal.completed === 'Yes';
+                
+                // Ẩn dữ liệu cho tài khoản chi nhánh nếu chưa hoàn thành
+                const transferCode = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.transfer_code || '');
+                const paymentDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(proposal.payment_date);
+                const approver = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.approver || '');
+                const approvalDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(proposal.approval_date);
+                const notes = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.notes || '');
+
                 row.innerHTML = `
-                    <td>${proposal.id}</td>
-                    <td>${formatDateToDDMMYYYY(proposal.date)}</td>
-                    <td>${sanitizeHTML(proposal.branch || '')}</td>
-                    <td>${sanitizeHTML(proposal.room || '')}</td>
-                    <td>${sanitizeHTML(proposal.proposer || '')}</td>
-                    <td>${sanitizeHTML(proposal.department || '')}</td>
-                    <td>${sanitizeHTML(proposal.code || '')}</td>
-                    <td>${sanitizeHTML(proposal.content || '')}</td>
-                    <td>${sanitizeHTML(proposal.purpose || '')}</td>
-                    <td>${sanitizeHTML(proposal.supplier || '')}</td>
-                    <td>${formatCurrency(proposal.estimated_cost)}</td>
-                    <td>${formatCurrency(proposal.budget)}</td>
-                    <td>${formatCurrency(proposal.approved_amount)}</td>
-                    <td>${sanitizeHTML(proposal.transfer_code || '')}</td>
-                    <td>${formatDateToDDMMYYYY(proposal.payment_date)}</td>
-                    <td>${sanitizeHTML(status)}</td>
-                    <td>${sanitizeHTML(proposal.approver || '')}</td>
-                    <td>${formatDateToDDMMYYYY(proposal.approval_date)}</td>
-                    <td><span class="completed-btn ${proposal.completed === 'Yes' ? 'completed' : ''}" data-id="${proposal.id}">${proposal.completed === 'Yes' ? 'O' : 'X'}</span></td>
-                    <td>${sanitizeHTML(proposal.notes || '')}</td>
+                    <td>${ proposal.id }</td>
+                    <td>${ formatDateToDDMMYYYY(proposal.date) }</td>
+                    <td>${ sanitizeHTML(proposal.branch || '') }</td>
+                    <td>${ sanitizeHTML(proposal.room || '') }</td>
+                    <td>${ sanitizeHTML(proposal.proposer || '') }</td>
+                    <td>${ sanitizeHTML(proposal.department || '') }</td>
+                    <td>${ sanitizeHTML(proposal.code || '') }</td>
+                    <td>${ sanitizeHTML(proposal.content || '') }</td>
+                    <td>${ sanitizeHTML(proposal.purpose || '') }</td>
+                    <td>${ sanitizeHTML(proposal.supplier || '') }</td>
+                    <td>${ formatCurrency(proposal.estimated_cost) }</td>
+                    <td>${ formatCurrency(proposal.approved_amount) }</td>
+                    <td>${ transferCode }</td>
+                    <td>${ paymentDate }</td>
+                    <td>${ sanitizeHTML(status) }</td>
+                    <td>${ approver }</td>
+                    <td>${ approvalDate }</td>
+                    <td><span class="completed-btn ${ proposal.completed === 'Yes' ? 'completed' : '' }" data-id="${ proposal.id }">${ proposal.completed === 'Yes' ? 'O' : 'X' }</span></td>
+                    <td>${ notes }</td>
                     <td class="no-print">
-                        ${currentUser.role !== 'accountant' ? `
-                            <button class="btn btn-primary btn-sm edit-btn" data-id="${proposal.id}" aria-label="Edit proposal details">
+                        ${ currentUser.role !== 'accountant' ? `
+                            <button class="btn btn-primary btn-sm edit-btn" data-id="${ proposal.id }" aria-label="Edit proposal details">
                                 <i class="bi bi-pencil"></i> Sửa
                             </button>
-                            <button class="btn btn-danger btn-sm delete-btn ms-1" data-id="${proposal.id}" aria-label="Delete proposal">
+                            <button class="btn btn-danger btn-sm delete-btn ms-1" data-id="${ proposal.id }" aria-label="Delete proposal">
                                 <i class="bi bi-trash"></i> Xóa
                             </button>
                         ` : `
-                            <button class="btn btn-primary btn-sm edit-btn" data-id="${proposal.id}" aria-label="Edit proposal details">
+                            <button class="btn btn-primary btn-sm edit-btn" data-id="${ proposal.id }" aria-label="Edit proposal details">
                                 <i class="bi bi-pencil"></i> Sửa
                             </button>
-                        `}
+                        ` }
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -831,7 +840,6 @@
                     document.getElementById('editPurpose').value = proposal.purpose || '';
                     document.getElementById('editSupplier').value = proposal.supplier || '';
                     document.getElementById('editEstimatedCost').value = proposal.estimated_cost || 0;
-                    document.getElementById('editBudget').value = proposal.budget || 0;
                     document.getElementById('editApprovedAmount').value = proposal.approved_amount || 0;
                     document.getElementById('editTransferCode').value = proposal.transfer_code || '';
                     document.getElementById('editPaymentDate').value = formatDateToDDMMYYYY(proposal.payment_date) || '';
@@ -840,6 +848,29 @@
                     document.getElementById('editApprovalDate').value = formatDateToDDMMYYYY(proposal.approval_date) || '';
                     document.getElementById('editCompleted').value = proposal.completed || '';
                     document.getElementById('editNotes').value = proposal.notes || '';
+
+                    const isBranchUser = currentUser.role !== 'accountant';
+                    const isCompleted = proposal.completed === 'Yes';
+
+                    // Ẩn trường cho tài khoản chi nhánh nếu chưa hoàn thành
+                    if (isBranchUser && !isCompleted) {
+                        document.getElementById('editTransferCode').value = '';
+                        document.getElementById('editPaymentDate').value = '';
+                        document.getElementById('editApprover').value = '';
+                        document.getElementById('editApprovalDate').value = '';
+                        document.getElementById('editNotes').value = '';
+                        document.getElementById('editTransferCode').setAttribute('readonly', 'readonly');
+                        document.getElementById('editPaymentDate').setAttribute('readonly', 'readonly');
+                        document.getElementById('editApprover').setAttribute('readonly', 'readonly');
+                        document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
+                        document.getElementById('editNotes').setAttribute('readonly', 'readonly');
+                    } else {
+                        document.getElementById('editTransferCode').removeAttribute('readonly');
+                        document.getElementById('editPaymentDate').removeAttribute('readonly');
+                        document.getElementById('editApprover').removeAttribute('readonly');
+                        document.getElementById('editApprovalDate').removeAttribute('readonly');
+                        document.getElementById('editNotes').removeAttribute('readonly');
+                    }
 
                     if (currentUser.role === 'accountant') {
                         document.getElementById('editProposer').setAttribute('readonly', 'readonly');
@@ -852,10 +883,7 @@
                         document.getElementById('editPurpose').setAttribute('readonly', 'readonly');
                         document.getElementById('editSupplier').setAttribute('readonly', 'readonly');
                         document.getElementById('editEstimatedCost').setAttribute('readonly', 'readonly');
-                        document.getElementById('editBudget').setAttribute('readonly', 'readonly');
                         document.getElementById('editStatus').setAttribute('readonly', 'readonly');
-                        document.getElementById('editApprover').setAttribute('readonly', 'readonly');
-                        document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
                     } else {
                         document.getElementById('editProposer').removeAttribute('readonly');
                         document.getElementById('editRoom').removeAttribute('readonly');
@@ -867,10 +895,7 @@
                         document.getElementById('editPurpose').removeAttribute('readonly');
                         document.getElementById('editSupplier').removeAttribute('readonly');
                         document.getElementById('editEstimatedCost').removeAttribute('readonly');
-                        document.getElementById('editBudget').removeAttribute('readonly');
                         document.getElementById('editStatus').setAttribute('readonly', 'readonly');
-                        document.getElementById('editApprover').removeAttribute('readonly');
-                        document.getElementById('editApprovalDate').removeAttribute('readonly');
                     }
 
                     console.log('Mở modal chỉnh sửa');
@@ -903,7 +928,6 @@
                 purpose: document.getElementById('editPurpose').value,
                 supplier: document.getElementById('editSupplier').value,
                 estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
-                budget: parseFloat(document.getElementById('editBudget').value) || 0,
                 approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || 0,
                 transfer_code: document.getElementById('editTransferCode').value,
                 payment_date: document.getElementById('editPaymentDate').value,
@@ -1098,7 +1122,6 @@
                             purpose: String(proposal["MỤC ĐÍCH"] || '').trim(),
                             supplier: String(proposal["NHÀ CUNG CẤP"] || '').trim(),
                             estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
-                            budget: 0,
                             approved_amount: 0,
                             transfer_code: '',
                             payment_date: '',
@@ -1230,12 +1253,20 @@
                     const wb = XLSX.utils.book_new();
                     const headers = [
                         "STT", "NGÀY THÁNG", "CHI NHÁNH", "PHÒNG BAN", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "MÃ ĐỀ XUẤT", 
-                        "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "NGÂN SÁCH", 
+                        "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", 
                         "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "TRẠNG THÁI", 
                         "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH", "GHI CHÚ"
                     ];
                     const data = [headers];
                     filteredData.forEach((item, index) => {
+                        const isBranchUser = currentUser.role !== 'accountant';
+                        const isCompleted = item.completed === 'Yes';
+                        const transferCode = isBranchUser && !isCompleted ? '' : item.transfer_code || '';
+                        const paymentDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(item.payment_date) || '';
+                        const approver = isBranchUser && !isCompleted ? '' : item.approver || '';
+                        const approvalDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(item.approval_date) || '';
+                        const notes = isBranchUser && !isCompleted ? '' : item.notes || '';
+
                         data.push([
                             index + 1,
                             formatDateToDDMMYYYY(item.date) || '',
@@ -1248,15 +1279,14 @@
                             item.purpose || '',
                             item.supplier || '',
                             item.estimated_cost || 0,
-                            item.budget || 0,
                             item.approved_amount || 0,
-                            item.transfer_code || '',
-                            formatDateToDDMMYYYY(item.payment_date) || '',
+                            transferCode,
+                            paymentDate,
                             getStatusFromCompleted(item.completed),
-                            item.approver || '',
-                            formatDateToDDMMYYYY(item.approval_date) || '',
+                            approver,
+                            approvalDate,
                             item.completed || '',
-                            item.notes || ''
+                            notes
                         ]);
                     });
                     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -1353,7 +1383,6 @@
                         <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
                         <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
                         <th data-sort="estimated_cost">Dự tính ngân sách <span class="sort-icon"></span></th>
-                        <th data-sort="budget">Ngân sách <span class="sort-icon"></span></th>
                         <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
                         <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
                         <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
@@ -1481,45 +1510,39 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngân sách</label>
-                                <input type="number" class="form-control" id="editBudget">
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Số tiền được duyệt</label>
                                 <input type="number" class="form-control" id="editApprovedAmount">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Mã chuyển khoản</label>
                                 <input type="text" class="form-control" id="editTransferCode">
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Ngày thanh toán</label>
                                 <input type="text" class="form-control" id="editPaymentDate" placeholder="DD/MM/YYYY">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Trạng thái</label>
                                 <input type="text" class="form-control" id="editStatus" readonly>
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Người duyệt</label>
                                 <input type="text" class="form-control" id="editApprover">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Ngày duyệt</label>
                                 <input type="text" class="form-control" id="editApprovalDate" placeholder="DD/MM/YYYY">
                             </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Hoàn thành</label>
                                 <input type="text" class="form-control" id="editCompleted">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Ghi chú</label>
                                 <input type="text" class="form-control" id="editNotes">
@@ -1535,4 +1558,4 @@
         </div>
     </div>
 </body>
-</html
+</html>
