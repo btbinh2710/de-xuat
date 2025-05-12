@@ -400,7 +400,7 @@
                             <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
                         </div>
                         <div class="alert alert-info">
-                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
+                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH. Nếu TRẠNG THÁI là "Đã xong", cần thêm MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN.
                         </div>
                     </form>
                     <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
@@ -730,6 +730,15 @@
 
             document.getElementById('saveEditBtn')?.addEventListener('click', function() {
                 saveEditChanges(bootstrap.Modal.getInstance(document.getElementById('editModal')));
+            });
+
+            // Quản lý focus khi đóng modal
+            const uploadModal = document.getElementById('uploadModal');
+            uploadModal.addEventListener('hidden.bs.modal', function () {
+                const uploadBtn = document.getElementById('uploadBtn');
+                if (uploadBtn) {
+                    uploadBtn.focus(); // Chuyển focus về nút mở modal
+                }
             });
         }
 
