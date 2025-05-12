@@ -20,13 +20,14 @@ def get_db_connection():
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
-        app.logger.error(f"Database connection error: {str(e)}")
+        app.logger.error(f"Kết nối cơ sở dữ liệu thất bại: {str(e)}")
         return None
 
 def init_db():
     try:
         conn = get_db_connection()
         if not conn:
+            app.logger.error("Không thể khởi tạo cơ sở dữ liệu: Kết nối thất bại")
             return False
         c = conn.cursor()
         c.execute('''
@@ -50,7 +51,6 @@ def init_db():
                 purpose TEXT,
                 supplier TEXT,
                 estimated_cost REAL,
-                budget REAL,
                 approved_amount REAL,
                 transfer_code TEXT,
                 payment_date TEXT,
@@ -75,9 +75,10 @@ def init_db():
                       (username, hashed.decode('utf-8'), branch, role))
         conn.commit()
         conn.close()
+        app.logger.info("Khởi tạo cơ sở dữ liệu thành công")
         return True
     except Exception as e:
-        app.logger.error(f"Database initialization error: {str(e)}")
+        app.logger.error(f"Lỗi khởi tạo cơ sở dữ liệu: {str(e)}")
         return False
 
 def token_required(f):
@@ -85,28 +86,29 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
         if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
+            app.logger.warning("Yêu cầu không có token")
+            return jsonify({'message': 'Thiếu token xác thực!'}), 401
         try:
             token = token.split(" ")[1]
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             current_user = data['username']
         except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
+            app.logger.warning("Token không hợp lệ")
+            return jsonify({'message': 'Token không hợp lệ!'}), 401
         return f(current_user, *args, **kwargs)
     return decorated
 
 class ProposalSchema(Schema):
-    proposer = fields.Str(required=True)
-    room = fields.Str(required=True)
-    branch = fields.Str(required=True)
-    department = fields.Str(required=True)
+    proposer = fields.Str(required=True, validate=validate.Length(min=1))
+    room = fields.Str(required=True, validate=validate.Length(min=1))
+    branch = fields.Str(required=True, validate=validate.Length(min=1))
+    department = fields.Str(required=True, validate=validate.Length(min=1))
     date = fields.Str(required=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
-    code = fields.Str(required=True)
-    content = fields.Str(required=True)
+    code = fields.Str(required=True, validate=validate.Length(min=1))
+    content = fields.Str(required=True, validate=validate.Length(min=1))
     purpose = fields.Str(allow_none=True)
-    supplier = fields.Str(required=True)
+    supplier = fields.Str(required=True, validate=validate.Length(min=1))
     estimated_cost = fields.Float(required=True, validate=validate.Range(min=0))
-    budget = fields.Float(allow_none=True, validate=validate.Range(min=0))
     approved_amount = fields.Float(allow_none=True, validate=validate.Range(min=0))
     transfer_code = fields.Str(allow_none=True)
     payment_date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{2}/\d{2}/\d{4}$|^$'))
@@ -121,31 +123,37 @@ def login():
     try:
         data = request.get_json()
         if not data or 'username' not in data or 'password' not in data:
-            return jsonify({'message': 'Missing username or password'}), 400
+            app.logger.warning("Thiếu tên đăng nhập hoặc mật khẩu")
+            return jsonify({'message': 'Thiếu tên đăng nhập hoặc mật khẩu'}), 400
         username = data.get('username')
         password = data.get('password')
         conn = get_db_connection()
         if not conn:
-            return jsonify({'message': 'Database connection failed'}), 500
+            app.logger.error("Không thể kết nối cơ sở dữ liệu trong đăng nhập")
+            return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại'}), 500
         c = conn.cursor()
         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         if not c.fetchone():
             conn.close()
             if not init_db():
-                return jsonify({'message': 'Failed to initialize database'}), 500
+                app.logger.error("Không thể khởi tạo cơ sở dữ liệu trong đăng nhập")
+                return jsonify({'message': 'Khởi tạo cơ sở dữ liệu thất bại'}), 500
             conn = get_db_connection()
             if not conn:
-                return jsonify({'message': 'Database connection failed after initialization'}), 500
+                app.logger.error("Kết nối cơ sở dữ liệu thất bại sau khi khởi tạo")
+                return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại sau khi khởi tạo'}), 500
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         if not user:
             conn.close()
-            return jsonify({'message': 'Invalid credentials!'}), 401
+            app.logger.warning(f"Thông tin đăng nhập không hợp lệ: {username}")
+            return jsonify({'message': 'Thông tin đăng nhập không hợp lệ!'}), 401
         if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
             token = jwt.encode({
                 'username': username,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
             }, app.config['SECRET_KEY'], algorithm="HS256")
             conn.close()
+            app.logger.info(f"Đăng nhập thành công: {username}")
             return jsonify({
                 'token': token,
                 'username': user['username'],
@@ -154,9 +162,10 @@ def login():
             })
         else:
             conn.close()
-            return jsonify({'message': 'Invalid credentials!'}), 401
+            app.logger.warning(f"Thông tin đăng nhập không hợp lệ: {username}")
+            return jsonify({'message': 'Thông tin đăng nhập không hợp lệ!'}), 401
     except Exception as e:
-        app.logger.error(f"Login error: {str(e)}")
+        app.logger.error(f"Lỗi đăng nhập: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals', methods=['GET'])
@@ -165,19 +174,22 @@ def get_proposals(current_user):
     try:
         conn = get_db_connection()
         if not conn:
-            return jsonify({'message': 'Database connection failed'}), 500
+            app.logger.error("Không thể kết nối cơ sở dữ liệu trong lấy danh sách đề xuất")
+            return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại'}), 500
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         if not user:
             conn.close()
-            return jsonify({'message': 'User not found!'}), 404
+            app.logger.warning(f"Người dùng không tồn tại: {current_user}")
+            return jsonify({'message': 'Người dùng không tồn tại!'}), 404
         if user['role'] == 'accountant':
             proposals = conn.execute('SELECT * FROM proposals').fetchall()
         else:
             proposals = conn.execute('SELECT * FROM proposals WHERE branch = ?', (user['branch'],)).fetchall()
         conn.close()
+        app.logger.info(f"Lấy danh sách đề xuất thành công cho người dùng: {current_user}")
         return jsonify([dict(row) for row in proposals])
     except Exception as e:
-        app.logger.error(f"Get proposals error: {str(e)}")
+        app.logger.error(f"Lỗi lấy danh sách đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals', methods=['POST'])
@@ -185,43 +197,50 @@ def get_proposals(current_user):
 def create_proposal(current_user):
     try:
         if request.headers.get('Content-Type') != 'application/json':
-            return jsonify({'message': 'Content-Type must be application/json'}), 415
+            app.logger.warning("Content-Type không phải application/json")
+            return jsonify({'message': 'Content-Type phải là application/json'}), 415
         data = request.get_json()
         schema = ProposalSchema()
         validated_data = schema.load(data)
         conn = get_db_connection()
         if not conn:
-            return jsonify({'message': 'Database connection failed'}), 500
+            app.logger.error("Không thể kết nối cơ sở dữ liệu trong tạo đề xuất")
+            return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại'}), 500
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         if not user:
             conn.close()
-            return jsonify({'message': 'User not found!'}), 404
+            app.logger.warning(f"Người dùng không tồn tại: {current_user}")
+            return jsonify({'message': 'Người dùng không tồn tại!'}), 404
         if user['role'] == 'accountant':
             conn.close()
-            return jsonify({'message': 'Accountants cannot create proposals!'}), 403
+            app.logger.warning(f"Tài khoản kế toán không được phép tạo đề xuất: {current_user}")
+            return jsonify({'message': 'Tài khoản kế toán không được phép tạo đề xuất!'}), 403
         validated_data['branch'] = user['branch']
         conn.execute('''
             INSERT INTO proposals (proposer, room, branch, department, date, code, content, purpose, supplier, 
-            estimated_cost, budget, approved_amount, transfer_code, payment_date, notes, status, approver, approval_date, completed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            estimated_cost, approved_amount, transfer_code, payment_date, notes, status, approver, approval_date, completed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             validated_data['proposer'], validated_data['room'], validated_data['branch'], validated_data['department'],
             validated_data['date'], validated_data['code'], validated_data['content'], validated_data['purpose'],
-            validated_data['supplier'], validated_data['estimated_cost'], validated_data['budget'], 
-            validated_data['approved_amount'], validated_data['transfer_code'], validated_data['payment_date'], 
-            validated_data['notes'], validated_data['status'], validated_data['approver'], validated_data['approval_date'], 
+            validated_data['supplier'], validated_data['estimated_cost'], validated_data['approved_amount'], 
+            validated_data['transfer_code'], validated_data['payment_date'], validated_data['notes'], 
+            validated_data['status'], validated_data['approver'], validated_data['approval_date'], 
             validated_data['completed']
         ))
         conn.commit()
         conn.close()
-        return jsonify({'message': 'Proposal created successfully!'}), 201
+        app.logger.info(f"Tạo đề xuất thành công bởi: {current_user}, mã: {validated_data['code']}")
+        return jsonify({'message': 'Tạo đề xuất thành công!'}), 201
     except ValidationError as err:
-        return jsonify({'message': err.messages}), 400
-    except sqlite3.IntegrityError:
+        app.logger.warning(f"Lỗi xác thực dữ liệu đề xuất: {err.messages}")
+        return jsonify({'message': f'Dữ liệu không hợp lệ: {err.messages}'}), 400
+    except sqlite3.IntegrityError as e:
         conn.close()
-        return jsonify({'message': 'Proposal code already exists for this branch!'}), 400
+        app.logger.warning(f"Mã đề xuất trùng lặp: {data.get('code', 'Không xác định')} cho chi nhánh {user['branch']}")
+        return jsonify({'message': 'Mã đề xuất đã tồn tại cho chi nhánh này!'}), 400
     except Exception as e:
-        app.logger.error(f"Create proposal error: {str(e)}")
+        app.logger.error(f"Lỗi tạo đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals/<int:id>', methods=['PUT'])
@@ -233,18 +252,22 @@ def update_proposal(current_user, id):
         validated_data = schema.load(data, partial=True)
         conn = get_db_connection()
         if not conn:
-            return jsonify({'message': 'Database connection failed'}), 500
+            app.logger.error("Không thể kết nối cơ sở dữ liệu trong cập nhật đề xuất")
+            return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại'}), 500
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
         if not user:
             conn.close()
-            return jsonify({'message': 'User not found!'}), 404
+            app.logger.warning(f"Người dùng không tồn tại: {current_user}")
+            return jsonify({'message': 'Người dùng không tồn tại!'}), 404
         if not proposal:
             conn.close()
-            return jsonify({'message': 'Proposal not found!'}), 404
+            app.logger.warning(f"Đề xuất không tồn tại: ID {id}")
+            return jsonify({'message': 'Đề xuất không tồn tại!'}), 404
         if user['role'] != 'admin' and user['branch'] != proposal['branch'] and user['role'] != 'accountant':
             conn.close()
-            return jsonify({'message': 'Unauthorized!'}), 403
+            app.logger.warning(f"Không có quyền cập nhật đề xuất: {current_user} trên đề xuất ID {id}")
+            return jsonify({'message': 'Không có quyền truy cập!'}), 403
         if user['role'] == 'accountant':
             allowed_fields = ['approved_amount', 'transfer_code', 'payment_date', 'notes', 'completed', 'status']
             validated_data = {k: v for k, v in validated_data.items() if k in allowed_fields}
@@ -255,11 +278,13 @@ def update_proposal(current_user, id):
         conn.execute(query, values)
         conn.commit()
         conn.close()
-        return jsonify({'message': 'Proposal updated successfully!'})
+        app.logger.info(f"Cập nhật đề xuất thành công: ID {id} bởi {current_user}")
+        return jsonify({'message': 'Cập nhật đề xuất thành công!'})
     except ValidationError as err:
-        return jsonify({'message': err.messages}), 400
+        app.logger.warning(f"Lỗi xác thực dữ liệu cập nhật đề xuất: {err.messages}")
+        return jsonify({'message': f'Dữ liệu không hợp lệ: {err.messages}'}), 400
     except Exception as e:
-        app.logger.error(f"Update proposal error: {str(e)}")
+        app.logger.error(f"Lỗi cập nhật đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 @app.route('/api/proposals/<int:id>', methods=['DELETE'])
@@ -268,27 +293,33 @@ def delete_proposal(current_user, id):
     try:
         conn = get_db_connection()
         if not conn:
-            return jsonify({'message': 'Database connection failed'}), 500
+            app.logger.error("Không thể kết nối cơ sở dữ liệu trong xóa đề xuất")
+            return jsonify({'message': 'Kết nối cơ sở dữ liệu thất bại'}), 500
         user = conn.execute('SELECT * FROM users WHERE username = ?', (current_user,)).fetchone()
         proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
         if not user:
             conn.close()
-            return jsonify({'message': 'User not found!'}), 404
+            app.logger.warning(f"Người dùng không tồn tại: {current_user}")
+            return jsonify({'message': 'Người dùng không tồn tại!'}), 404
         if not proposal:
             conn.close()
-            return jsonify({'message': 'Proposal not found!'}), 404
+            app.logger.warning(f"Đề xuất không tồn tại: ID {id}")
+            return jsonify({'message': 'Đề xuất không tồn tại!'}), 404
         if user['role'] == 'accountant':
             conn.close()
-            return jsonify({'message': 'Accountants cannot delete proposals!'}), 403
+            app.logger.warning(f"Tài khoản kế toán không được phép xóa đề xuất: {current_user}")
+            return jsonify({'message': 'Tài khoản kế toán không được phép xóa đề xuất!'}), 403
         if user['role'] != 'admin' and user['branch'] != proposal['branch']:
             conn.close()
-            return jsonify({'message': 'Unauthorized!'}), 403
+            app.logger.warning(f"Không có quyền xóa đề xuất: {current_user} trên đề xuất ID {id}")
+            return jsonify({'message': 'Không có quyền truy cập!'}), 403
         conn.execute('DELETE FROM proposals WHERE id = ?', (id,))
         conn.commit()
         conn.close()
-        return jsonify({'message': 'Proposal deleted successfully!'})
+        app.logger.info(f"Xóa đề xuất thành công: ID {id} bởi {current_user}")
+        return jsonify({'message': 'Xóa đề xuất thành công!'})
     except Exception as e:
-        app.logger.error(f"Delete proposal error: {str(e)}")
+        app.logger.error(f"Lỗi xóa đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
 if __name__ == '__main__':
