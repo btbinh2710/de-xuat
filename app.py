@@ -125,7 +125,7 @@ def authenticate_token():
     try:
         user = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         app.logger.info(f'Token xac thuc thanh cong cho nguoi dung: {user["username"]}')
-        return user, None, None
+        return user
     except Exception as e:
         app.logger.error(f'Token khong hop le: {str(e)}')
         raise APIError('Token khong hop le', 403)
@@ -134,3 +134,160 @@ def authenticate_token():
 def login():
     data = request.get_json()
     username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        app.logger.warning('Thieu ten dang nhap hoac mat khau')
+        raise APIError('Ten dang nhap va mat khau la bat buoc', 400)
+
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    conn.close()
+
+    if not user or not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        app.logger.warning(f'Thu dang nhap that bai cho nguoi dung: {username}')
+        raise APIError('Ten dang nhap hoac mat khau khong dung!', 401)
+
+    token = jwt.encode({
+        'username': user['username'],
+        'role': user['role'],
+        'branch': user['branch'],
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    }, SECRET_KEY, algorithm='HS256')
+
+    app.logger.info(f'Dang nhap thanh cong cho nguoi dung: {username}')
+    return jsonify({'token': token, 'role': user['role'], 'branch': user['branch']})
+
+@app.route('/api/proposals', methods=['GET'])
+def get_proposals():
+    user = authenticate_token()
+    
+    conn = get_db_connection()
+    if user['role'] in ['admin', 'accountant']:
+        proposals = conn.execute('SELECT * FROM proposals').fetchall()
+    else:
+        proposals = conn.execute('SELECT * FROM proposals WHERE branch = ?', (user['branch'],)).fetchall()
+    conn.close()
+
+    app.logger.info(f'Lay {len(proposals)} de xuat cho nguoi dung: {user["username"]}')
+    return jsonify([format_proposal(dict(row)) for row in proposals])
+
+@app.route('/api/proposals', methods=['POST'])
+def add_proposal():
+    user = authenticate_token()
+    if user['role'] in ['admin', 'accountant']:
+        raise APIError('Admin va ke toan khong the them de xuat!', 403)
+
+    data = request.get_json()
+    try:
+        validated_data = proposal_schema.load(data)
+    except ValidationError as err:
+        raise APIError(f'Loi validation: {err.messages}', 400)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO proposals (proposer, room, branch, department, date, code, content, purpose, supplier,
+                              estimated_cost, budget, approved_amount, transfer_code, payment_date, notes, status,
+                              approver, approval_date, completed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        validated_data.get('proposer'),
+        validated_data.get('room'),
+        user['branch'],
+        validated_data.get('department'),
+        validated_data.get('date'),
+        validated_data.get('code'),
+        validated_data.get('content'),
+        validated_data.get('purpose'),
+        validated_data.get('supplier'),
+        validated_data.get('estimated_cost'),
+        validated_data.get('budget'),
+        validated_data.get('approved_amount'),
+        validated_data.get('transfer_code'),
+        validated_data.get('payment_date'),
+        validated_data.get('notes'),
+        validated_data.get('status'),
+        validated_data.get('approver'),
+        validated_data.get('approval_date'),
+        validated_data.get('completed')
+    ))
+    conn.commit()
+    new_id = cursor.lastrowid
+    new_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (new_id,)).fetchone()
+    conn.close()
+
+    app.logger.info(f'Tao de xuat moi ID {new_id} boi nguoi dung: {user["username"]}')
+    return jsonify(format_proposal(dict(new_proposal))), 201
+
+@app.route('/api/proposals/<int:id>', methods=['PUT'])
+def update_proposal(id):
+    user = authenticate_token()
+
+    conn = get_db_connection()
+    proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
+    
+    if not proposal:
+        conn.close()
+        raise APIError('De xuat khong ton tai!', 404)
+    if user['role'] == 'manager' and proposal['branch'] != user['branch']:
+        conn.close()
+        raise APIError('Ban khong co quyen chinh sua de xuat nay!', 403)
+
+    data = request.get_json()
+    
+    if user['role'] == 'accountant':
+        # Kế toán chỉ được cập nhật các trường: approved_amount, transfer_code, payment_date, notes, completed
+        allowed_fields = {'approved_amount', 'transfer_code', 'payment_date', 'notes', 'completed'}
+        update_fields = {k: v for k, v in data.items() if k in allowed_fields and v is not None}
+    else:
+        # Admin và manager được cập nhật tất cả các trường
+        try:
+            validated_data = proposal_schema.load(data, partial=True)
+        except ValidationError as err:
+            conn.close()
+            raise APIError(f'Loi validation: {err.messages}', 400)
+        update_fields = {k: v for k, v in validated_data.items() if v is not None}
+
+    if not update_fields:
+        conn.close()
+        raise APIError('Khong co truong nao de cap nhat', 400)
+
+    query = 'UPDATE proposals SET ' + ', '.join(f'{k} = ?' for k in update_fields.keys()) + ' WHERE id = ?'
+    values = list(update_fields.values()) + [id]
+    conn.execute(query, values)
+    conn.commit()
+
+    updated_proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
+    conn.close()
+
+    app.logger.info(f'Cap nhat de xuat ID {id} boi nguoi dung: {user["username"]}')
+    return jsonify(format_proposal(dict(updated_proposal)))
+
+@app.route('/api/proposals/<int:id>', methods=['DELETE'])
+def delete_proposal(id):
+    user = authenticate_token()
+
+    if user['role'] == 'accountant':
+        raise APIError('Ke toan khong co quyen xoa de xuat!', 403)
+
+    conn = get_db_connection()
+    proposal = conn.execute('SELECT * FROM proposals WHERE id = ?', (id,)).fetchone()
+    
+    if not proposal:
+        conn.close()
+        raise APIError('De xuat khong ton tai!', 404)
+    if user['role'] == 'manager' and proposal['branch'] != user['branch']:
+        conn.close()
+        raise APIError('Ban khong co quyen xoa de xuat nay!', 403)
+
+    conn.execute('DELETE FROM proposals WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+
+    app.logger.info(f'Xoa de xuat ID {id} boi nguoi dung: {user["username"]}')
+    return '', 204
+
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
