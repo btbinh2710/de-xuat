@@ -1,4 +1,3 @@
-```python
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import jwt
@@ -294,4 +293,3 @@ def delete_proposal(id):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-```
