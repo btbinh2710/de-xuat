@@ -3,3 +3,5 @@ flask-cors
 python-dotenv
 pyjwt
 marshmallow
+bcrypt
+gunicorn
