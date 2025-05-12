@@ -1,4 +1,4 @@
 #!/bin/bash
 python create_db.py
-python migrate_db.py
-gunicorn --bind 0.0.0.0:$PORT app:app
+flask db upgrade
+gunicorn --bind 0.0.0.0:$PORT app:create_app
