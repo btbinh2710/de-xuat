@@ -149,7 +149,7 @@
             color: #fff;
         }
         .login-logo {
-            display: block;
+            bmp3play: block;
             margin: 0 auto 10px;
             max-width: 200px;
             height: auto;
@@ -1088,15 +1088,15 @@
                         console.log(`Dữ liệu hàng ${i + 1}:`, proposal);
 
                         const formattedProposal = {
-                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"]?.toString().trim() || '',
-                            room: proposal["PHÒNG BAN"]?.toString().trim() || '',
+                            proposer: String(proposal["NGƯỜI ĐỀ NGHỊ"] || '').trim(),
+                            room: String(proposal["PHÒNG BAN"] || '').trim(),
                             branch: currentUser.branch,
-                            department: proposal["BỘ PHẬN"]?.toString().trim() || '',
+                            department: String(proposal["BỘ PHẬN"] || '').trim(),
                             date: formatDateToDDMMYYYY(proposal["NGÀY THÁNG"]) || '',
-                            code: proposal["MÃ ĐỀ XUẤT"]?.toString().trim() || '',
-                            content: proposal["NỘI DUNG"]?.toString().trim() || '',
-                            purpose: proposal["MỤC ĐÍCH"]?.toString().trim() || '',
-                            supplier: proposal["NHÀ CUNG CẤP"]?.toString().trim() || '',
+                            code: String(proposal["MÃ ĐỀ XUẤT"] || '').trim(),
+                            content: String(proposal["NỘI DUNG"] || '').trim(),
+                            purpose: String(proposal["MỤC ĐÍCH"] || '').trim(),
+                            supplier: String(proposal["NHÀ CUNG CẤP"] || '').trim(),
                             estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
                             budget: 0,
                             approved_amount: 0,
@@ -1120,10 +1120,15 @@
                             { key: 'supplier', name: 'NHÀ CUNG CẤP' },
                             { key: 'estimated_cost', name: 'DỰ TÍNH NGÂN SÁCH' }
                         ];
-                        const missingFields = requiredFields.filter(field => !formattedProposal[field.key] || formattedProposal[field.key].trim() === '');
+                        const missingFields = requiredFields.filter(field => {
+                            if (field.key === 'estimated_cost') {
+                                return isNaN(formattedProposal[field.key]) || formattedProposal[field.key] <= 0;
+                            }
+                            return !formattedProposal[field.key] || String(formattedProposal[field.key]).trim() === '';
+                        });
                         if (missingFields.length > 0) {
                             console.error(`Lỗi: Hàng ${i + 1} thiếu trường bắt buộc`, missingFields);
-                            showUploadError(`Hàng ${i + 1} thiếu các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
+                            showUploadError(`Hàng ${i + 1} thiếu hoặc không hợp lệ các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
                             return;
                         }
 
@@ -1530,4 +1535,4 @@
         </div>
     </div>
 </body>
-</html>
+</html
