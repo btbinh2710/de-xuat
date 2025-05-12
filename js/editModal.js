@@ -39,12 +39,18 @@ function openEditModal(proposalId) {
             let showRestrictedFields = false;
             if (isAccountant) {
                 // Tài khoản kế toán: Chỉ hiển thị nếu tất cả các trường đều có giá trị
-                showRestrictedFields = proposal.approved_amount != null && proposal.approved_amount !== '' &&
-                                      proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
-                                      proposal.payment_date && proposal.payment_date.trim() !== '' &&
-                                      proposal.status && proposal.status.trim() !== '' &&
-                                      proposal.approver && proposal.approver.trim() !== '' &&
-                                      proposal.notes && proposal.notes.trim() !== '';
+                showRestrictedFields = proposal.approved_amount != null && 
+                                      proposal.approved_amount !== '' &&
+                                      proposal.transfer_code && 
+                                      proposal.transfer_code.trim() !== '' &&
+                                      proposal.payment_date && 
+                                      proposal.payment_date.trim() !== '' &&
+                                      proposal.status && 
+                                      proposal.status.trim() !== '' &&
+                                      proposal.approver && 
+                                      proposal.approver.trim() !== '' &&
+                                      proposal.notes && 
+                                      proposal.notes.trim() !== '';
             } else {
                 // Tài khoản chi nhánh: Chỉ hiển thị nếu đã hoàn thành
                 showRestrictedFields = isCompleted;
