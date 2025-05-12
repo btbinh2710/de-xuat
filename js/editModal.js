@@ -40,11 +40,11 @@ function openEditModal(proposalId) {
             if (isAccountant) {
                 // Tài khoản kế toán: Chỉ hiển thị nếu tất cả các trường đều có giá trị
                 showRestrictedFields = proposal.approved_amount != null && proposal.approved_amount !== '' &&
-                                     proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
-                                     proposal.payment_date && proposal.payment_date.trim() !== '' &&
-                                     proposal.status && proposal.status.trim() !== '' &&
-                                     proposal.approver && proposal.approver.trim() !== '' &&
-                                     proposal.notes && proposal.notes.trim() !== '';
+                                      proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
+                                      proposal.payment_date && proposal.payment_date.trim() !== '' &&
+                                      proposal.status && proposal.status.trim() !== '' &&
+                                      proposal.approver && proposal.approver.trim() !== '' &&
+                                      proposal.notes && proposal.notes.trim() !== '';
             } else {
                 // Tài khoản chi nhánh: Chỉ hiển thị nếu đã hoàn thành
                 showRestrictedFields = isCompleted;
@@ -104,4 +104,9 @@ function openEditModal(proposalId) {
 
             console.log('Mở modal chỉnh sửa');
             new bootstrap.Modal(document.getElementById('editModal')).show();
-        }
+        })
+        .catch(error => {
+            console.error('Lỗi khi tải đề xuất:', error.message);
+            alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+        });
+}
