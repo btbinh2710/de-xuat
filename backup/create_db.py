@@ -7,9 +7,9 @@ def create_db():
     try:
         if os.path.exists('data.db'):
             os.remove('data.db')
-            print('✅ Đã xóa database cũ.')
+            print('Da xoa database cu.')
     except Exception as e:
-        print(f'⚠ Lỗi khi xóa database cũ: {e}')
+        print(f'Loi khi xoa database cu: {e}')
 
     conn = sqlite3.connect('data.db')
     c = conn.cursor()
@@ -70,7 +70,7 @@ def create_db():
                       (username, password, branch, 'manager'))
     
     conn.commit()
-    print('✅ Đã tạo user admin và 36 tài khoản cho 18 chi nhánh với mật khẩu mã hóa.')
+    print('Da tao user admin va 36 tai khoan cho 18 chi nhanh voi mat khau ma hoa.')
     conn.close()
 
 if __name__ == '__main__':
