@@ -400,8 +400,7 @@
                             <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
                         </div>
                         <div class="alert alert-info">
-                            <strong>Lưu ý:</strong> File Excel cần có các cột tương ứng với bảng hiển thị.
-                            Dữ liệu mới sẽ được thêm vào với chi nhánh của bạn.
+                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
                         </div>
                     </form>
                     <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
@@ -562,13 +561,16 @@
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
+            // Xử lý định dạng YYYY-MM-DD
             if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 const [year, month, day] = dateStr.split('-');
                 return `${day}/${month}/${year}`;
             }
+            // Xử lý định dạng MM/DD/YYYY
             if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
                 return dateStr;
             }
+            // Xử lý định dạng từ Excel (timestamp hoặc chuỗi ngày)
             try {
                 const date = new Date(dateStr);
                 if (isNaN(date.getTime())) return '';
@@ -1213,7 +1215,7 @@
                     }
 
                     const headers = jsonData[0];
-                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"];
+                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ ĐỀ XUẤT", "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"];
                     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
                     if (missingColumns.length > 0) {
@@ -1240,25 +1242,25 @@
                         });
 
                         const formattedProposal = {
-                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"]?.toString() || '',
-                            room: proposal["PHÒNG BAN"]?.toString() || '',
+                            proposer: proposal["NGƯỜI ĐỀ NGHỊ"]?.toString().trim() || '',
+                            room: proposal["PHÒNG BAN"]?.toString().trim() || '',
                             branch: currentUser.branch,
-                            department: proposal["BỘ PHẬN"]?.toString() || '',
+                            department: proposal["BỘ PHẬN"]?.toString().trim() || '',
                             date: formatDateToDDMMYYYY(proposal["NGÀY THÁNG"]) || '',
-                            code: proposal["MÃ SỐ ĐỀ XUẤT"]?.toString() || '',
-                            content: proposal["NỘI DUNG"]?.toString() || '',
-                            purpose: proposal["MỤC ĐÍCH"]?.toString() || '',
-                            supplier: proposal["NHÀ CUNG CẤP"]?.toString() || '',
+                            code: proposal["MÃ ĐỀ XUẤT"]?.toString().trim() || '',
+                            content: proposal["NỘI DUNG"]?.toString().trim() || '',
+                            purpose: proposal["MỤC ĐÍCH"]?.toString().trim() || '',
+                            supplier: proposal["NHÀ CUNG CẤP"]?.toString().trim() || '',
                             estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
-                            budget: parseFloat(proposal["NGÂN SÁCH"]) || 0,
-                            approved_amount: parseFloat(proposal["SỐ TIỀN ĐƯỢC DUYỆT"]) || 0,
-                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"]?.toString() || '',
-                            payment_date: formatDateToDDMMYYYY(proposal["NGÀY THANH TOÁN"]) || '',
-                            notes: proposal["GHI CHÚ"]?.toString() || '',
-                            status: getStatusFromCompleted(proposal["HOÀN THÀNH"]?.toString() || ''),
-                            approver: proposal["NGƯỜI DUYỆT"]?.toString() || '',
-                            approval_date: formatDateToDDMMYYYY(proposal["NGÀY DUYỆT"]) || '',
-                            completed: proposal["HOÀN THÀNH"]?.toString() || ''
+                            budget: 0,
+                            approved_amount: 0,
+                            transfer_code: proposal["MÃ CHUYỂN KHOẢN"]?.toString().trim() || '',
+                            payment_date: formatDateToDDMMYYYY(proposal["NGÀY CHUYỂN KHOẢN"]) || '',
+                            notes: '',
+                            status: proposal["TRẠNG THÁI"]?.toString().trim() || 'Đang xử lý',
+                            approver: '',
+                            approval_date: '',
+                            completed: proposal["TRẠNG THÁI"] === 'Đã xong' ? 'Yes' : 'No'
                         };
 
                         // Kiểm tra các trường bắt buộc
@@ -1267,20 +1269,39 @@
                             { key: 'room', name: 'PHÒNG BAN' },
                             { key: 'department', name: 'BỘ PHẬN' },
                             { key: 'date', name: 'NGÀY THÁNG' },
-                            { key: 'code', name: 'MÃ SỐ ĐỀ XUẤT' },
+                            { key: 'code', name: 'MÃ ĐỀ XUẤT' },
                             { key: 'content', name: 'NỘI DUNG' },
                             { key: 'supplier', name: 'NHÀ CUNG CẤP' },
                             { key: 'estimated_cost', name: 'DỰ TÍNH NGÂN SÁCH' }
                         ];
-                        const missingFields = requiredFields.filter(field => !formattedProposal[field.key]);
+                        const missingFields = requiredFields.filter(field => !formattedProposal[field.key] || formattedProposal[field.key].trim() === '');
                         if (missingFields.length > 0) {
                             showUploadError(`Hàng ${i + 1} thiếu các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
                             return;
                         }
 
+                        // Kiểm tra định dạng ngày
+                        if (formattedProposal.date && !formattedProposal.date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                            showUploadError(`Hàng ${i + 1}: NGÀY THÁNG phải có định dạng DD/MM/YYYY`);
+                            return;
+                        }
+
+                        // Kiểm tra estimated_cost
                         if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
                             showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
                             return;
+                        }
+
+                        // Nếu trạng thái là "Đã xong", yêu cầu MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN
+                        if (formattedProposal.status === 'Đã xong') {
+                            if (!formattedProposal.transfer_code || !formattedProposal.payment_date) {
+                                showUploadError(`Hàng ${i + 1}: Khi TRẠNG THÁI là "Đã xong", phải có MÃ CHUYỂN KHOẢN và NGÀY CHUYỂN KHOẢN`);
+                                return;
+                            }
+                            if (!formattedProposal.payment_date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                                showUploadError(`Hàng ${i + 1}: NGÀY CHUYỂN KHOẢN phải có định dạng DD/MM/YYYY`);
+                                return;
+                            }
                         }
 
                         const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
@@ -1310,7 +1331,8 @@
                         })
                         .catch(error => {
                             console.error('Lỗi khi tải lên:', error.message);
-                            showUploadError(error.response?.data?.message || 'Lỗi khi tải lên đề xuất. Vui lòng kiểm tra dữ liệu và thử lại.');
+                            const errorMessage = error.response?.data?.message || 'Lỗi khi tải lên đề xuất. Vui lòng kiểm tra dữ liệu và thử lại.';
+                            showUploadError(`Lỗi server: ${errorMessage}`);
                         });
                 } catch (error) {
                     showUploadError("Lỗi khi xử lý file Excel: " + error.message);
@@ -1327,17 +1349,16 @@
         function downloadExcelTemplate() {
             const wb = XLSX.utils.book_new();
             const headers = [
-                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ SỐ ĐỀ XUẤT", 
-                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "NGÂN SÁCH", 
-                "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "GHI CHÚ", 
-                "TRẠNG THÁI", "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH"
+                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ ĐỀ XUẤT", 
+                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "TRẠNG THÁI",
+                "MÃ CHUYỂN KHOẢN", "NGÀY CHUYỂN KHOẢN"
             ];
             const sampleData = [
                 headers,
                 ["Nguyễn Văn A", "Kinh Doanh", "KD", "01/05/2025", "DX001", "Mua laptop phục vụ công việc", 
-                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, 20000000, 0, "", "", "", "Đang xử lý", "", "", "No"],
+                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000, "Đang xử lý", "", ""],
                 ["Trần Thị B", "Hành Chính Nhân Sự", "HCNS", "02/05/2025", "DX002", "Mua máy in phục vụ văn phòng", 
-                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, 10000000, 0, "", "", "", "Đã xong", "", "", "Yes"]
+                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000, "Đã xong", "CK12345", "02/05/2025"]
             ];
             const ws = XLSX.utils.aoa_to_sheet(sampleData);
             XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -1357,7 +1378,7 @@
                     }
                     const wb = XLSX.utils.book_new();
                     const headers = [
-                        "STT", "NGÀY THÁNG", "CHI NHÁNH", "PHÒNG BAN", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "MÃ SỐ ĐỀ XUẤT", 
+                        "STT", "NGÀY THÁNG", "CHI NHÁNH", "PHÒNG BAN", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "MÃ ĐỀ XUẤT", 
                         "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", "NGÂN SÁCH", 
                         "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "TRẠNG THÁI", 
                         "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH", "GHI CHÚ"
