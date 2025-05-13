@@ -22,3 +22,30 @@ function initializeApp() {
         }
     });
 }
+
+function formatDateToDDMMYYYY(date) {
+    if (!date || date === 'null' || date === null) {
+        console.log('formatDateToDDMMYYYY: Ngày không hợp lệ, trả về rỗng');
+        return '';
+    }
+    console.log('formatDateToDDMMYYYY:', date);
+    const d = new Date(date);
+    if (isNaN(d.getTime())) {
+        return '';
+    }
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function getStatusFromCompleted(completed) {
+    console.log('getStatusFromCompleted:', completed);
+    if (!completed || completed === 'No' || completed === 'X') {
+        return 'Đang xử lý';
+    }
+    if (completed === 'Yes' || completed === 'O') {
+        return 'Hoàn thành';
+    }
+    return 'Đang xử lý'; // Giá trị mặc định nếu completed không xác định
+}
