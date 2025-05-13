@@ -169,7 +169,7 @@ function handleExcelUpload() {
                 }
                 existingCodes.add(key);
                 console.log(`Thêm đề xuất mới hàng ${i + 1}:`, formattedProposal);
-                newProposals.push(axios.post(`${API_URL}/proposals`, formattedProposal, {
+                newProposals.push(axios.post(`https://de-xuat-backend-s1mk.onrender.com/api/proposals`, formattedProposal, {
                     headers: { Authorization: `Bearer ${token}` }
                 }));
             }

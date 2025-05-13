@@ -44,7 +44,7 @@ function renderTable() {
              proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
              proposal.payment_date && proposal.payment_date.trim() !== '' &&
              proposal.approver && proposal.approver.trim() !== '' &&
-             proposal.approval_date && proposal.approval_date.trim() !== '') :
+             proposal.approval_date && proposal.aproduction_date.trim() !== '') :
             isCompleted;
 
         // Tự động cập nhật Trạng thái

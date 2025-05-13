@@ -1,7 +1,7 @@
 function openEditModal(proposalId) {
     console.log('openEditModal:', proposalId);
     const token = localStorage.getItem('token');
-    axios.get(`${API_URL}/proposals`, { headers: { Authorization: `Bearer ${token}` } })
+    axios.get(`https://de-xuat-backend-s1mk.onrender.com/api/proposals`, { headers: { Authorization: `Bearer ${token}` } })
         .then(response => {
             console.log('Tải dữ liệu đề xuất để chỉnh sửa:', response.data);
             const proposal = response.data.find(p => p.id === proposalId);
@@ -136,7 +136,7 @@ function openEditModal(proposalId) {
                         return;
                     }
 
-                    axios.put(`${API_URL}/proposals/${proposalId}`, quickData, {
+                    axios.put(`https://de-xuat-backend-s1mk.onrender.com/api/proposals/${proposalId}`, quickData, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                         .then(() => {
