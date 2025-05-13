@@ -7,7 +7,15 @@ function openEditModal(proposalId) {
             const proposal = response.data.find(p => p.id === proposalId);
             if (!proposal) {
                 console.error('Lỗi: Đề xuất không tồn tại');
-                alert('Đề xuất không tồn tại!');
+                Toastify({
+                    text: 'Đề xuất không tồn tại!',
+                    duration: 3000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#dc3545",
+                    stopOnFocus: true,
+                }).showToast();
                 return;
             }
             document.getElementById('editProposalId').value = proposal.id;
@@ -37,9 +45,7 @@ function openEditModal(proposalId) {
                  proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
                  proposal.payment_date && proposal.payment_date.trim() !== '' &&
                  proposal.approver && proposal.approver.trim() !== '' &&
-                 proposal.approval_date && proposal.approval_date.trim() !== '' &&
-                 proposal.completed && proposal.completed.trim() !== '' &&
-                 proposal.notes && proposal.notes.trim() !== '') :
+                 proposal.approval_date && proposal.approval_date.trim() !== '') :
                 isCompleted;
 
             if (!showRestrictedFields) {
@@ -94,11 +100,87 @@ function openEditModal(proposalId) {
                 document.getElementById('editEstimatedCost').removeAttribute('readonly');
             }
 
+            // Xử lý nút Upload lên nhanh
+            const quickUploadBtn = document.getElementById('quickUploadBtn');
+            if (quickUploadBtn && isAccountant) {
+                quickUploadBtn.addEventListener('click', () => {
+                    console.log('Quick upload cho đề xuất:', proposalId);
+                    const quickData = {
+                        approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || proposal.estimated_cost,
+                        transfer_code: document.getElementById('editTransferCode').value || `CK${Date.now()}`,
+                        payment_date: document.getElementById('editPaymentDate').value || new Date().toLocaleDateString('vi-VN'),
+                        status: document.getElementById('editTransferCode').value ? 'Hoàn thành' : 'Đang xử lý',
+                        approver: document.getElementById('editApprover').value || currentUser.username,
+                        approval_date: document.getElementById('editApprovalDate').value || new Date().toLocaleDateString('vi-VN'),
+                        completed: (document.getElementById('editApprovedAmount').value && 
+                                    document.getElementById('editTransferCode').value && 
+                                    document.getElementById('editPaymentDate').value && 
+                                    document.getElementById('editApprover').value && 
+                                    document.getElementById('editApprovalDate').value) ? 'O' : 'X',
+                        notes: document.getElementById('editNotes').value || 'Đã duyệt bởi kế toán'
+                    };
+
+                    // Kiểm tra các trường bắt buộc
+                    if (!quickData.approved_amount || quickData.approved_amount <= 0 ||
+                        !quickData.transfer_code || !quickData.payment_date || 
+                        !quickData.approver || !quickData.approval_date) {
+                        Toastify({
+                            text: 'Vui lòng điền đầy đủ các trường bắt buộc: Số tiền được duyệt, Mã chuyển khoản, Ngày thanh toán, Người duyệt, Ngày duyệt!',
+                            duration: 3000,
+                            close: true,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#dc3545",
+                            stopOnFocus: true,
+                        }).showToast();
+                        return;
+                    }
+
+                    axios.put(`${API_URL}/proposals/${proposalId}`, quickData, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                        .then(() => {
+                            console.log('Quick upload thành công:', proposalId);
+                            Toastify({
+                                text: 'Đã cập nhật đề xuất thành công!',
+                                duration: 3000,
+                                close: true,
+                                gravity: "top",
+                                position: "right",
+                                backgroundColor: "#28a745",
+                                stopOnFocus: true,
+                            }).showToast();
+                            loadProposalData();
+                            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                        })
+                        .catch(error => {
+                            console.error('Lỗi quick upload:', error);
+                            Toastify({
+                                text: error.response?.data?.message || 'Lỗi khi cập nhật đề xuất!',
+                                duration: 3000,
+                                close: true,
+                                gravity: "top",
+                                position: "right",
+                                backgroundColor: "#dc3545",
+                                stopOnFocus: true,
+                            }).showToast();
+                        });
+                });
+            }
+
             console.log('Mở modal chỉnh sửa');
             new bootstrap.Modal(document.getElementById('editModal')).show();
         })
         .catch(error => {
             console.error('Lỗi khi tải đề xuất:', error.message);
-            alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+            Toastify({
+                text: error.response?.data?.message || 'Lỗi khi tải đề xuất!',
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#dc3545",
+                stopOnFocus: true,
+            }).showToast();
         });
 }

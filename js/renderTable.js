@@ -44,19 +44,26 @@ function renderTable() {
              proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
              proposal.payment_date && proposal.payment_date.trim() !== '' &&
              proposal.approver && proposal.approver.trim() !== '' &&
-             proposal.approval_date && proposal.approval_date.trim() !== '' &&
-             proposal.completed && proposal.completed.trim() !== '' &&
-             proposal.notes && proposal.notes.trim() !== '') :
+             proposal.approval_date && proposal.approval_date.trim() !== '') :
             isCompleted;
+
+        // Tự động cập nhật Trạng thái
+        const status = proposal.transfer_code && proposal.transfer_code.trim() !== '' ? 'Hoàn thành' : 'Đang xử lý';
+
+        // Tự động cập nhật Hoàn thành
+        const completed = (proposal.approved_amount != null && proposal.approved_amount !== '' &&
+                           proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
+                           proposal.payment_date && proposal.payment_date.trim() !== '' &&
+                           proposal.approver && proposal.approver.trim() !== '' &&
+                           proposal.approval_date && proposal.approval_date.trim() !== '') ? 'O' : 'X';
 
         const approvedAmount = showRestrictedColumns ? formatCurrency(proposal.approved_amount) : '';
         const transferCode = showRestrictedColumns ? sanitizeHTML(proposal.transfer_code || '') : '';
-        const paymentDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.payment_date) : '';
-        const status = showRestrictedColumns ? sanitizeHTML(getStatusFromCompleted(proposal.completed)) : '';
+        const paymentDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.payment_date) || '' : '';
         const approver = showRestrictedColumns ? sanitizeHTML(proposal.approver || '') : '';
-        const approvalDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.approval_date) : '';
-        const completed = showRestrictedColumns ? `<span class="completed-btn ${proposal.completed === 'Yes' ? 'completed' : ''}" data-id="${proposal.id}">${proposal.completed === 'Yes' ? 'O' : 'X'}</span>` : '';
+        const approvalDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.approval_date) || '' : '';
         const notes = showRestrictedColumns ? sanitizeHTML(proposal.notes || '') : '';
+        const completedDisplay = showRestrictedColumns ? `<span class="completed-btn ${completed === 'O' ? 'completed' : ''}" data-id="${proposal.id}">${completed}</span>` : '';
 
         row.innerHTML = `
             <td>${proposal.id}</td>
@@ -73,10 +80,10 @@ function renderTable() {
             <td>${approvedAmount}</td>
             <td>${transferCode}</td>
             <td>${paymentDate}</td>
-            <td>${status}</td>
+            <td>${sanitizeHTML(status)}</td>
             <td>${approver}</td>
             <td>${approvalDate}</td>
-            <td>${completed}</td>
+            <td>${completedDisplay}</td>
             <td>${notes}</td>
             <td class="no-print">
                 ${currentUser.role !== 'accountant' ? `

@@ -1,9 +1,20 @@
 function handleExcelUpload() {
     console.log('Bắt đầu handleExcelUpload');
     const uploadModal = document.getElementById('uploadModal');
+    const uploadButton = document.getElementById('confirmUploadBtn');
+    const spinner = document.getElementById('uploadSpinner');
+    
     if (!uploadModal || !uploadModal.classList.contains('show')) {
         console.error('Lỗi: Modal upload không hiển thị');
-        alert('Lỗi giao diện: Vui lòng mở modal tải lên trước khi nhấn Tải lên!');
+        Toastify({
+            text: 'Lỗi giao diện: Vui lòng mở modal tải lên trước khi nhấn Tải lên!',
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "#dc3545",
+            stopOnFocus: true,
+        }).showToast();
         return;
     }
     if (!currentUser) {
@@ -30,6 +41,11 @@ function handleExcelUpload() {
         return;
     }
     console.log('File được chọn:', file.name);
+    
+    // Hiển thị spinner và vô hiệu hóa nút
+    uploadButton.disabled = true;
+    spinner.classList.remove('hidden');
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         console.log('Đọc file Excel thành công');
@@ -172,7 +188,15 @@ function handleExcelUpload() {
                     fileInput.value = '';
                     loadProposalData();
                     if (duplicates.size > 0) {
-                        alert(`Có ${duplicates.size} đề xuất trùng lặp đã bị bỏ qua và không được thêm vào.`);
+                        Toastify({
+                            text: `Có ${duplicates.size} đề xuất trùng lặp đã bị bỏ qua.`,
+                            duration: 3000,
+                            close: true,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "#ffc107",
+                            stopOnFocus: true,
+                        }).showToast();
                     }
                 })
                 .catch(error => {
@@ -188,18 +212,55 @@ function handleExcelUpload() {
                         }
                     }
                     showUploadError(errorMessage);
+                })
+                .finally(() => {
+                    // Ẩn spinner và kích hoạt lại nút
+                    uploadButton.disabled = false;
+                    spinner.classList.add('hidden');
                 });
         } catch (error) {
             console.error('Lỗi xử lý file Excel:', error);
             showUploadError("Lỗi khi xử lý file Excel: " + error.message);
+        } finally {
+            // Ẩn spinner và kích hoạt lại nút trong trường hợp lỗi xử lý file
+            uploadButton.disabled = false;
+            spinner.classList.add('hidden');
         }
     };
 
     reader.onerror = function() {
         console.error('Lỗi đọc file Excel');
         showUploadError("Lỗi khi đọc file!");
+        uploadButton.disabled = false;
+        spinner.classList.add('hidden');
     };
 
     console.log('Bắt đầu đọc file Excel');
     reader.readAsArrayBuffer(file);
+}
+
+function showUploadError(message) {
+    console.log('showUploadError:', message);
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        backgroundColor: "#dc3545",
+        stopOnFocus: true,
+    }).showToast();
+}
+
+function showUploadSuccess(message) {
+    console.log('showUploadSuccess:', message);
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        backgroundColor: "#28a745",
+        stopOnFocus: true,
+    }).showToast();
 }
