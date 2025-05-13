@@ -32,16 +32,15 @@ function openEditModal(proposalId) {
 
             const isAccountant = currentUser.role === 'accountant';
             const isCompleted = proposal.completed === 'Yes';
+            const showRestrictedFields = isAccountant ? 
+                (proposal.approved_amount != null && proposal.approved_amount !== '' && 
+                 proposal.transfer_code && proposal.transfer_code.trim() !== '' && 
+                 proposal.payment_date && proposal.payment_date.trim() !== '' && 
+                 proposal.status && proposal.status.trim() !== '' && 
+                 proposal.approver && proposal.approver.trim() !== '' && 
+                 proposal.notes && proposal.notes.trim() !== '') : 
+                isCompleted;
 
-            // Kiểm tra điều kiện hiển thị và chỉnh sửa cho các trường bị kiểm soát
-            let showRestrictedFields = false;
-            if (isAccountant) {
-                showRestrictedFields = proposal.approved_amount != null && proposal.approved_amount !== '' && proposal.transfer_code && proposal.transfer_code.trim() !== '' && proposal.payment_date && proposal.payment_date.trim() !== '' && proposal.status && proposal.status.trim() !== '' && proposal.approver && proposal.approver.trim() !== '' && proposal.notes && proposal.notes.trim() !== '';
-            } else {
-                showRestrictedFields = isCompleted;
-            }
-
-            // Áp dụng logic cho các trường bị kiểm soát
             if (!showRestrictedFields) {
                 document.getElementById('editApprovedAmount').value = '';
                 document.getElementById('editTransferCode').value = '';
@@ -64,7 +63,6 @@ function openEditModal(proposalId) {
                 document.getElementById('editNotes').removeAttribute('readonly');
             }
 
-            // Logic cho các trường khác
             if (isAccountant) {
                 document.getElementById('editProposer').setAttribute('readonly', 'readonly');
                 document.getElementById('editRoom').setAttribute('readonly', 'readonly');
