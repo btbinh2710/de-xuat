@@ -1,0 +1,1561 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: url('https://images.unsplash.com/photo-1507521628349-dee6c896a2c8') no-repeat center center fixed;
+            background-size: cover;
+        }
+        .header-w3l {
+            margin: 2em 0 1em;
+            text-align: center;
+        }
+        .header-w3l h1 {
+            font-size: 3em;
+            color: #000;
+            letter-spacing: 1px;
+            font-weight: 300;
+            text-shadow: 0 1px 2px #000;
+            margin-bottom: 0.5em;
+        }
+        .main-w3layouts-agileinfo {
+            width: 30%;
+            margin: 0 auto;
+        }
+        .wthree-form {
+            background: rgba(0, 0, 0, 0.47);
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .wthree-form h2 {
+            font-size: 1.5em;
+            color: #000;
+            text-align: center;
+            margin-bottom: 1.5em;
+        }
+        .form-sub-w3 {
+            position: relative;
+            margin-bottom: 1.5em;
+        }
+        .form-sub-w3 input[type="text"],
+        .form-sub-w3 input[type="password"],
+        .form-sub-w3 input[type="number"] {
+            outline: none;
+            font-size: 0.9em;
+            color: #000;
+            padding: 0.8em 0.5em 0.8em 1em;
+            border: 1px solid #ccc;
+            background: #fff;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+        .form-sub-w3 input[type="text"]::placeholder,
+        .form-sub-w3 input[type="password"]::placeholder {
+            color: #999;
+        }
+        .icon-w3 {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .icon-w3 i {
+            color: #fff;
+            font-size: 1em;
+        }
+        .submit-agileits {
+            text-align: center;
+        }
+        .submit-agileits input[type="submit"] {
+            outline: none;
+            color: #fff;
+            padding: 0.5em 2em;
+            font-size: 1em;
+            border: none;
+            background: #00c6d7;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: 0.5s all;
+        }
+        .submit-agileits input[type="submit"]:hover {
+            background: #007bff;
+        }
+        .footer {
+            text-align: center;
+            margin: 2em 0;
+        }
+        .footer p {
+            color: #fff;
+            font-size: 0.9em;
+        }
+        .footer a {
+            color: #00c6d7;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #fff;
+        }
+        .login-logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 200px;
+            height: auto;
+        }
+        .alert-danger {
+            background-color: rgba(255, 99, 71, 0.8);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 1em;
+            display: none;
+        }
+        .main-content {
+            font-family: Arial, sans-serif;
+            padding-bottom: 50px;
+        }
+        .header {
+            background-color: #ffffff;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination-button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: 1px solid #dee2e6;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pagination-button.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        .pagination-button:hover:not(.active) {
+            background-color: #e9ecef;
+        }
+        .sort-icon {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            margin-left: 5px;
+            vertical-align: middle;
+            content: "";
+            border-top: 4px solid;
+            border-right: 4px solid transparent;
+            border-bottom: 0;
+            border-left: 4px solid transparent;
+        }
+        .sort-icon.asc {
+            border-top: 0;
+            border-bottom: 4px solid;
+        }
+        th {
+            cursor: pointer;
+            position: relative;
+        }
+        th:hover {
+            background-color: #f8f9fa;
+        }
+        .hidden {
+            display: none;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+        tr.duplicate {
+            background-color: yellow !important;
+        }
+        .main-logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 200px;
+            height: auto;
+        }
+        .completed-btn {
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+        .completed-btn.completed {
+            color: green;
+        }
+        .completed-btn:not(.completed) {
+            color: red;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = 'https://de-xuat-ea0h.onrender.com/api';
+        let currentUser = null;
+        let proposals = [];
+        let filteredProposals = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let currentSortColumn = '';
+        let currentSortDirection = 'asc';
+
+        // Hàm xử lý XSS
+        function sanitizeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+            console.log('formatDateToDDMMYYYY:', dateStr);
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            }
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                return dateStr;
+            }
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return '';
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            } catch {
+                return '';
+            }
+        }
+
+        function formatDateToYYYYMMDD(dateStr) {
+            console.log('formatDateToYYYYMMDD:', dateStr);
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const [day, month, year] = dateStr.split('/');
+                return `${year}-${month}-${day}`;
+            }
+            return dateStr;
+        }
+
+        function getStatusFromCompleted(completed) {
+            console.log('getStatusFromCompleted:', completed);
+            return completed === 'Yes' ? 'Đã xong' : 'Đang xử lý';
+        }
+
+        function showUploadError(message) {
+            console.log('showUploadError:', message);
+            const errorElement = document.getElementById('uploadError');
+            const successElement = document.getElementById('uploadSuccess');
+            if (!errorElement || !successElement) {
+                console.error('Lỗi: Không tìm thấy uploadError hoặc uploadSuccess trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo lỗi. Vui lòng thử lại.');
+                return;
+            }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            successElement.classList.add('hidden');
+        }
+
+        function showUploadSuccess(message) {
+            console.log('showUploadSuccess:', message);
+            const errorElement = document.getElementById('uploadError');
+            const successElement = document.getElementById('uploadSuccess');
+            if (!errorElement || !successElement) {
+                console.error('Lỗi: Không tìm thấy uploadError hoặc uploadSuccess trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo thành công. Vui lòng thử lại.');
+                return;
+            }
+            successElement.textContent = message;
+            successElement.classList.remove('hidden');
+            errorElement.classList.add('hidden');
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                if (modal) modal.hide();
+            }, 2000);
+        }
+
+        async function checkTokenValidity() {
+            console.log('checkTokenValidity');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('Lỗi: Không có token trong localStorage');
+                return false;
+            }
+            try {
+                await axios.get(`${API_URL}/proposals`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                console.log('Token hợp lệ');
+                return true;
+            } catch (error) {
+                const errMsg = error.response?.data?.message || 'Unknown error';
+                console.error('Lỗi xác thực token:', errMsg);
+                if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                    localStorage.clear();
+                    currentUser = null;
+                    showLoginForm();
+                    alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                }
+                return false;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log('DOMContentLoaded');
+            const token = localStorage.getItem('token');
+            if (token) {
+                console.log('Tìm thấy token, bắt đầu validateToken');
+                validateToken(token);
+            } else {
+                console.log('Không có token, hiển thị form đăng nhập');
+                showLoginForm();
+            }
+            initEventListeners();
+        });
+
+        function validateToken(token) {
+            console.log('validateToken:', token);
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    console.log('Xác thực token thành công');
+                    const userData = {
+                        username: localStorage.getItem('username'),
+                        branch: localStorage.getItem('branch'),
+                        role: localStorage.getItem('role')
+                    };
+                    if (!userData.username || !userData.role) {
+                        throw new Error('Thông tin người dùng không đầy đủ trong localStorage');
+                    }
+                    currentUser = userData;
+                    console.log('currentUser:', currentUser);
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${currentUser.username}`;
+                    document.getElementById('userBranch').textContent = currentUser.role === 'accountant' ? 'Kế toán' : `Chi nhánh: ${currentUser.branch}`;
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi xác thực token:', error.message);
+                    localStorage.clear();
+                    showLoginForm();
+                    alert(error.response?.data?.message || 'Lỗi xác thực token');
+                });
+        }
+
+        function showLoginForm() {
+            console.log('showLoginForm');
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('loginFormContainer').classList.remove('hidden');
+            document.getElementById('loginForm')?.reset();
+            const errorElement = document.getElementById('loginError');
+            if (errorElement) {
+                errorElement.classList.add('hidden');
+            }
+        }
+
+        function initEventListeners() {
+            console.log('initEventListeners');
+            document.getElementById('loginForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleLogin();
+            });
+
+            document.getElementById('logoutBtn')?.addEventListener('click', function() {
+                console.log('Đăng xuất');
+                localStorage.clear();
+                currentUser = null;
+                showLoginForm();
+            });
+
+            document.getElementById('searchBtn')?.addEventListener('click', applySearch);
+
+            document.getElementById('clearSearchBtn')?.addEventListener('click', function() {
+                console.log('Xóa tìm kiếm');
+                document.getElementById('searchInput').value = '';
+                applySearch();
+            });
+
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.addEventListener('click', function() {
+                    console.log('Sắp xếp:', this.getAttribute('data-sort'));
+                    sortTable(this.getAttribute('data-sort'));
+                });
+            });
+
+            document.getElementById('confirmUploadBtn')?.addEventListener('click', handleExcelUpload);
+
+            document.getElementById('downloadTemplateBtn')?.addEventListener('click', downloadExcelTemplate);
+
+            document.getElementById('exportXDVBtn')?.addEventListener('click', function() {
+                console.log('Xuất báo cáo XDV');
+                exportSummaryReport('XDV');
+            });
+
+            document.getElementById('exportPTTBtn')?.addEventListener('click', function() {
+                console.log('Xuất báo cáo PTT');
+                exportSummaryReport('PTT');
+            });
+
+            document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
+                const proposalId = parseInt(this.getAttribute('data-id'));
+                console.log('Xác nhận xóa đề xuất:', proposalId);
+                if (!isNaN(proposalId)) {
+                    deleteProposal(proposalId);
+                }
+            });
+
+            document.getElementById('saveEditBtn')?.addEventListener('click', function() {
+                console.log('Lưu chỉnh sửa đề xuất');
+                saveEditChanges(bootstrap.Modal.getInstance(document.getElementById('editModal')));
+            });
+
+            const uploadModal = document.getElementById('uploadModal');
+            uploadModal.addEventListener('hidden.bs.modal', function () {
+                console.log('Modal upload đóng');
+                const uploadBtn = document.getElementById('uploadBtn');
+                if (uploadBtn) {
+                    uploadBtn.focus();
+                }
+            });
+        }
+
+        function handleLogin() {
+            console.log('handleLogin');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            console.log('Đăng nhập với username:', username);
+            axios.post(`${API_URL}/login`, { username, password })
+                .then(response => {
+                    console.log('Đăng nhập thành công:', response.data);
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('branch', response.data.branch);
+                    localStorage.setItem('role', response.data.role);
+                    currentUser = {
+                        username: username,
+                        branch: response.data.branch,
+                        role: response.data.role
+                    };
+                    document.getElementById('loginFormContainer').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('userName').textContent = `Người dùng: ${username}`;
+                    document.getElementById('userBranch').textContent = currentUser.role === 'accountant' ? 'Kế toán' : `Chi nhánh: ${currentUser.branch}`;
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi đăng nhập:', error.message);
+                    showLoginError(error.response?.data?.message || 'Lỗi đăng nhập!');
+                });
+        }
+
+        function showLoginError(message) {
+            console.log('showLoginError:', message);
+            const errorElement = document.getElementById('loginError');
+            if (!errorElement) {
+                console.error('Lỗi: Không tìm thấy loginError trong DOM');
+                alert('Lỗi giao diện: Không thể hiển thị thông báo lỗi. Vui lòng thử lại.');
+                return;
+            }
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        function loadProposalData() {
+            console.log('loadProposalData');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('Lỗi: Không có token, chuyển về form đăng nhập');
+                showLoginForm();
+                return;
+            }
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    console.log('Tải dữ liệu đề xuất thành công:', response.data);
+                    proposals = response.data;
+                    filteredProposals = [...proposals];
+                    sortData();
+                    renderTable();
+                    renderPagination();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải dữ liệu:', error.message);
+                    let errMsg = 'Lỗi không xác định';
+                    if (error.response) {
+                        errMsg = error.response.data?.message || 'Lỗi server';
+                        if (errMsg.includes('Token expired') || errMsg.includes('Invalid token')) {
+                            localStorage.clear();
+                            showLoginForm();
+                            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        }
+                    } else {
+                        errMsg = error.message;
+                    }
+                    alert(`Lỗi khi tải dữ liệu: ${errMsg}`);
+                });
+        }
+
+        function renderTable() {
+            console.log('renderTable');
+            const tableBody = document.getElementById('proposalsTableBody');
+            if (!tableBody) {
+                console.error('Lỗi: Không tìm thấy proposalsTableBody');
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredProposals.length);
+            const currentPageData = filteredProposals.slice(startIndex, endIndex);
+
+            if (currentPageData.length === 0) {
+                console.log('Không có dữ liệu để hiển thị');
+                tableBody.innerHTML = `<tr><td colspan="19" class="text-center">Không có dữ liệu</td></tr>`;
+                return;
+            }
+
+            const codeBranchMap = new Map();
+            proposals.forEach(proposal => {
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                if (!codeBranchMap.has(key)) {
+                    codeBranchMap.set(key, []);
+                }
+                codeBranchMap.get(key).push(proposal);
+            });
+
+            currentPageData.forEach((proposal, index) => {
+                const row = document.createElement('tr');
+                const key = `${proposal.code || ''}-${proposal.branch}`;
+                const isDuplicate = codeBranchMap.get(key).length > 1;
+                if (isDuplicate) {
+                    row.classList.add('duplicate');
+                }
+
+                const formatCurrency = (value) => value ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value) : '';
+                const status = getStatusFromCompleted(proposal.completed);
+                const isBranchUser = currentUser.role !== 'accountant';
+                const isCompleted = proposal.completed === 'Yes';
+                
+                // Ẩn dữ liệu cho tài khoản chi nhánh nếu chưa hoàn thành
+                const transferCode = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.transfer_code || '');
+                const paymentDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(proposal.payment_date);
+                const approver = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.approver || '');
+                const approvalDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(proposal.approval_date);
+                const notes = isBranchUser && !isCompleted ? '' : sanitizeHTML(proposal.notes || '');
+
+                row.innerHTML = `
+                    <td>${ proposal.id }</td>
+                    <td>${ formatDateToDDMMYYYY(proposal.date) }</td>
+                    <td>${ sanitizeHTML(proposal.branch || '') }</td>
+                    <td>${ sanitizeHTML(proposal.room || '') }</td>
+                    <td>${ sanitizeHTML(proposal.proposer || '') }</td>
+                    <td>${ sanitizeHTML(proposal.department || '') }</td>
+                    <td>${ sanitizeHTML(proposal.code || '') }</td>
+                    <td>${ sanitizeHTML(proposal.content || '') }</td>
+                    <td>${ sanitizeHTML(proposal.purpose || '') }</td>
+                    <td>${ sanitizeHTML(proposal.supplier || '') }</td>
+                    <td>${ formatCurrency(proposal.estimated_cost) }</td>
+                    <td>${ formatCurrency(proposal.approved_amount) }</td>
+                    <td>${ transferCode }</td>
+                    <td>${ paymentDate }</td>
+                    <td>${ sanitizeHTML(status) }</td>
+                    <td>${ approver }</td>
+                    <td>${ approvalDate }</td>
+                    <td><span class="completed-btn ${ proposal.completed === 'Yes' ? 'completed' : '' }" data-id="${ proposal.id }">${ proposal.completed === 'Yes' ? 'O' : 'X' }</span></td>
+                    <td>${ notes }</td>
+                    <td class="no-print">
+                        ${ currentUser.role !== 'accountant' ? `
+                            <button class="btn btn-primary btn-sm edit-btn" data-id="${ proposal.id }" aria-label="Edit proposal details">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                            <button class="btn btn-danger btn-sm delete-btn ms-1" data-id="${ proposal.id }" aria-label="Delete proposal">
+                                <i class="bi bi-trash"></i> Xóa
+                            </button>
+                        ` : `
+                            <button class="btn btn-primary btn-sm edit-btn" data-id="${ proposal.id }" aria-label="Edit proposal details">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </button>
+                        ` }
+                    </td>
+                `;
+                tableBody.appendChild(row);
+
+                if (row.querySelector('.edit-btn')) {
+                    row.querySelector('.edit-btn').addEventListener('click', () => {
+                        console.log('Mở modal chỉnh sửa:', proposal.id);
+                        openEditModal(proposal.id);
+                    });
+                }
+                if (row.querySelector('.delete-btn')) {
+                    row.querySelector('.delete-btn').addEventListener('click', () => {
+                        console.log('Mở modal xóa:', proposal.id);
+                        openDeleteModal(proposal.id);
+                    });
+                }
+                row.querySelector('.completed-btn')?.addEventListener('click', () => {
+                    console.log('Thay đổi trạng thái hoàn thành:', proposal.id);
+                    toggleCompleted(proposal.id, proposal.completed);
+                });
+            });
+        }
+
+        function toggleCompleted(proposalId, currentStatus) {
+            console.log('toggleCompleted:', proposalId, currentStatus);
+            const newStatus = currentStatus === 'Yes' ? 'No' : 'Yes';
+            const token = localStorage.getItem('token');
+            axios.put(`${API_URL}/proposals/${proposalId}`, { 
+                completed: newStatus,
+                status: getStatusFromCompleted(newStatus)
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    console.log('Cập nhật trạng thái hoàn thành thành công');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi cập nhật trạng thái hoàn thành:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
+                });
+        }
+
+        function renderPagination() {
+            console.log('renderPagination');
+            const paginationContainer = document.getElementById('pagination');
+            if (!paginationContainer) {
+                console.error('Lỗi: Không tìm thấy paginationContainer');
+                return;
+            }
+
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
+
+            if (totalPages <= 1) return;
+
+            const prevButton = document.createElement('button');
+            prevButton.classList.add('pagination-button');
+            prevButton.innerHTML = '«';
+            prevButton.disabled = currentPage === 1;
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    console.log('Chuyển về trang trước:', currentPage - 1);
+                    currentPage--;
+                    renderTable();
+                    renderPagination();
+                }
+            });
+            paginationContainer.appendChild(prevButton);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.classList.add('pagination-button');
+                if (i === currentPage) pageButton.classList.add('active');
+                pageButton.textContent = i;
+                pageButton.addEventListener('click', () => {
+                    console.log('Chuyển đến trang:', i);
+                    currentPage = i;
+                    renderTable();
+                    renderPagination();
+                });
+                paginationContainer.appendChild(pageButton);
+            }
+
+            const nextButton = document.createElement('button');
+            nextButton.classList.add('pagination-button');
+            nextButton.innerHTML = '»';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    console.log('Chuyển đến trang tiếp theo:', currentPage + 1);
+                    currentPage++;
+                    renderTable();
+                    renderPagination();
+                }
+            });
+            paginationContainer.appendChild(nextButton);
+        }
+
+        function applySearch() {
+            console.log('applySearch');
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) {
+                console.error('Lỗi: Không tìm thấy searchInput');
+                return;
+            }
+
+            const searchTerm = searchInput.value.toLowerCase();
+            console.log('Tìm kiếm với từ khóa:', searchTerm);
+            filteredProposals = proposals.filter(proposal => {
+                return (
+                    (proposal.proposer || '').toLowerCase().includes(searchTerm) ||
+                    (proposal.content || '').toLowerCase().includes(searchTerm)
+                );
+            });
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        function sortTable(column) {
+            console.log('sortTable:', column);
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+
+            document.querySelectorAll('th[data-sort] .sort-icon').forEach(icon => {
+                icon.className = 'sort-icon';
+            });
+            const currentIcon = document.querySelector(`th[data-sort="${column}"] .sort-icon`);
+            if (currentIcon) {
+                if (currentSortDirection === 'asc') {
+                    currentIcon.classList.add('asc');
+                } else {
+                    currentIcon.classList.remove('asc');
+                }
+            }
+
+            sortData();
+            renderTable();
+        }
+
+        function sortData() {
+            console.log('sortData:', currentSortColumn, currentSortDirection);
+            if (!currentSortColumn) return;
+
+            filteredProposals.sort((a, b) => {
+                let valueA = a[currentSortColumn];
+                let valueB = b[currentSortColumn];
+
+                if (typeof valueA === 'string' && typeof valueB === 'string') {
+                    valueA = valueA.toLowerCase();
+                    valueB = valueB.toLowerCase();
+                }
+
+                if (['date', 'payment_date', 'approval_date'].includes(currentSortColumn)) {
+                    valueA = valueA ? new Date(formatDateToYYYYMMDD(valueA)) : '';
+                    valueB = valueB ? new Date(formatDateToYYYYMMDD(valueB)) : '';
+                }
+
+                valueA = valueA === undefined || valueA === null || valueA === '' ? '' : valueA;
+                valueB = valueB === undefined || valueB === null || valueB === '' ? '' : valueB;
+
+                if (currentSortDirection === 'asc') {
+                    return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+                } else {
+                    return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+                }
+            });
+        }
+
+        function openEditModal(proposalId) {
+            console.log('openEditModal:', proposalId);
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    console.log('Tải dữ liệu đề xuất để chỉnh sửa:', response.data);
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        console.error('Lỗi: Đề xuất không tồn tại');
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    document.getElementById('editProposalId').value = proposal.id;
+                    document.getElementById('editProposer').value = proposal.proposer || '';
+                    document.getElementById('editRoom').value = proposal.room || '';
+                    document.getElementById('editBranch').value = proposal.branch || '';
+                    document.getElementById('editDepartment').value = proposal.department || '';
+                    document.getElementById('editDate').value = formatDateToDDMMYYYY(proposal.date) || '';
+                    document.getElementById('editCode').value = proposal.code || '';
+                    document.getElementById('editContent').value = proposal.content || '';
+                    document.getElementById('editPurpose').value = proposal.purpose || '';
+                    document.getElementById('editSupplier').value = proposal.supplier || '';
+                    document.getElementById('editEstimatedCost').value = proposal.estimated_cost || 0;
+                    document.getElementById('editApprovedAmount').value = proposal.approved_amount || 0;
+                    document.getElementById('editTransferCode').value = proposal.transfer_code || '';
+                    document.getElementById('editPaymentDate').value = formatDateToDDMMYYYY(proposal.payment_date) || '';
+                    document.getElementById('editStatus').value = getStatusFromCompleted(proposal.completed);
+                    document.getElementById('editApprover').value = proposal.approver || '';
+                    document.getElementById('editApprovalDate').value = formatDateToDDMMYYYY(proposal.approval_date) || '';
+                    document.getElementById('editCompleted').value = proposal.completed || '';
+                    document.getElementById('editNotes').value = proposal.notes || '';
+
+                    const isBranchUser = currentUser.role !== 'accountant';
+                    const isCompleted = proposal.completed === 'Yes';
+
+                    // Ẩn trường cho tài khoản chi nhánh nếu chưa hoàn thành
+                    if (isBranchUser && !isCompleted) {
+                        document.getElementById('editTransferCode').value = '';
+                        document.getElementById('editPaymentDate').value = '';
+                        document.getElementById('editApprover').value = '';
+                        document.getElementById('editApprovalDate').value = '';
+                        document.getElementById('editNotes').value = '';
+                        document.getElementById('editTransferCode').setAttribute('readonly', 'readonly');
+                        document.getElementById('editPaymentDate').setAttribute('readonly', 'readonly');
+                        document.getElementById('editApprover').setAttribute('readonly', 'readonly');
+                        document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
+                        document.getElementById('editNotes').setAttribute('readonly', 'readonly');
+                    } else {
+                        document.getElementById('editTransferCode').removeAttribute('readonly');
+                        document.getElementById('editPaymentDate').removeAttribute('readonly');
+                        document.getElementById('editApprover').removeAttribute('readonly');
+                        document.getElementById('editApprovalDate').removeAttribute('readonly');
+                        document.getElementById('editNotes').removeAttribute('readonly');
+                    }
+
+                    if (currentUser.role === 'accountant') {
+                        document.getElementById('editProposer').setAttribute('readonly', 'readonly');
+                        document.getElementById('editRoom').setAttribute('readonly', 'readonly');
+                        document.getElementById('editBranch').setAttribute('readonly', 'readonly');
+                        document.getElementById('editDepartment').setAttribute('readonly', 'readonly');
+                        document.getElementById('editDate').setAttribute('readonly', 'readonly');
+                        document.getElementById('editCode').setAttribute('readonly', 'readonly');
+                        document.getElementById('editContent').setAttribute('readonly', 'readonly');
+                        document.getElementById('editPurpose').setAttribute('readonly', 'readonly');
+                        document.getElementById('editSupplier').setAttribute('readonly', 'readonly');
+                        document.getElementById('editEstimatedCost').setAttribute('readonly', 'readonly');
+                        document.getElementById('editStatus').setAttribute('readonly', 'readonly');
+                    } else {
+                        document.getElementById('editProposer').removeAttribute('readonly');
+                        document.getElementById('editRoom').removeAttribute('readonly');
+                        document.getElementById('editBranch').setAttribute('readonly', 'readonly');
+                        document.getElementById('editDepartment').removeAttribute('readonly');
+                        document.getElementById('editDate').removeAttribute('readonly');
+                        document.getElementById('editCode').removeAttribute('readonly');
+                        document.getElementById('editContent').removeAttribute('readonly');
+                        document.getElementById('editPurpose').removeAttribute('readonly');
+                        document.getElementById('editSupplier').removeAttribute('readonly');
+                        document.getElementById('editEstimatedCost').removeAttribute('readonly');
+                        document.getElementById('editStatus').setAttribute('readonly', 'readonly');
+                    }
+
+                    console.log('Mở modal chỉnh sửa');
+                    new bootstrap.Modal(document.getElementById('editModal')).show();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+                });
+        }
+
+        function saveEditChanges(modal) {
+            console.log('saveEditChanges');
+            const form = document.getElementById('editForm');
+            if (!form || !form.checkValidity()) {
+                console.error('Lỗi: Form không hợp lệ hoặc không tồn tại');
+                form.reportValidity();
+                return;
+            }
+
+            const proposalId = parseInt(document.getElementById('editProposalId').value);
+            const completed = document.getElementById('editCompleted').value;
+            const updatedProposal = {
+                proposer: document.getElementById('editProposer').value,
+                room: document.getElementById('editRoom').value,
+                department: document.getElementById('editDepartment').value,
+                date: document.getElementById('editDate').value,
+                code: document.getElementById('editCode').value,
+                content: document.getElementById('editContent').value,
+                purpose: document.getElementById('editPurpose').value,
+                supplier: document.getElementById('editSupplier').value,
+                estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
+                approved_amount: parseFloat(document.getElementById('editApprovedAmount').value) || 0,
+                transfer_code: document.getElementById('editTransferCode').value,
+                payment_date: document.getElementById('editPaymentDate').value,
+                notes: document.getElementById('editNotes').value,
+                status: getStatusFromCompleted(completed),
+                approver: document.getElementById('editApprover').value,
+                approval_date: document.getElementById('editApprovalDate').value,
+                completed: completed
+            };
+            console.log('Dữ liệu cập nhật đề xuất:', updatedProposal);
+
+            const token = localStorage.getItem('token');
+            axios.put(`${API_URL}/proposals/${proposalId}`, updatedProposal, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    console.log('Cập nhật đề xuất thành công');
+                    modal.hide();
+                    alert('Đã cập nhật đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi cập nhật:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi cập nhật');
+                });
+        }
+
+        async function openDeleteModal(proposalId) {
+            console.log('openDeleteModal:', proposalId);
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) {
+                console.error('Lỗi: Token không hợp lệ');
+                return;
+            }
+
+            if (currentUser.role === 'accountant') {
+                console.error('Lỗi: Tài khoản kế toán không có quyền xóa');
+                alert('Tài khoản kế toán không có quyền xóa đề xuất!');
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    console.log('Tải dữ liệu đề xuất để xóa:', response.data);
+                    const proposal = response.data.find(p => p.id === proposalId);
+                    if (!proposal) {
+                        console.error('Lỗi: Đề xuất không tồn tại');
+                        alert('Đề xuất không tồn tại!');
+                        return;
+                    }
+                    document.getElementById('deleteModalContent').innerHTML = `
+                        <strong>Người đề nghị:</strong> ${sanitizeHTML(proposal.proposer || '')}<br>
+                        <strong>Nội dung:</strong> ${sanitizeHTML(proposal.content || '')}<br>
+                        <strong>Chi nhánh:</strong> ${sanitizeHTML(proposal.branch || '')}
+                    `;
+                    document.getElementById('confirmDeleteBtn').setAttribute('data-id', proposalId);
+                    console.log('Mở modal xóa');
+                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải đề xuất:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi tải đề xuất');
+                });
+        }
+
+        async function deleteProposal(proposalId) {
+            console.log('deleteProposal:', proposalId);
+            const tokenValid = await checkTokenValidity();
+            if (!tokenValid) {
+                console.error('Lỗi: Token không hợp lệ');
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            axios.delete(`${API_URL}/proposals/${proposalId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(() => {
+                    console.log('Xóa đề xuất thành công');
+                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                    alert('Đã xóa đề xuất!');
+                    loadProposalData();
+                })
+                .catch(error => {
+                    console.error('Lỗi khi xóa:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi xóa');
+                });
+        }
+
+        function handleExcelUpload() {
+            console.log('Bắt đầu handleExcelUpload');
+            const uploadModal = document.getElementById('uploadModal');
+            if (!uploadModal || !uploadModal.classList.contains('show')) {
+                console.error('Lỗi: Modal upload không hiển thị');
+                alert('Lỗi giao diện: Vui lòng mở modal tải lên trước khi nhấn Tải lên!');
+                return;
+            }
+            if (!currentUser) {
+                console.error('Lỗi: currentUser không tồn tại');
+                showUploadError("Vui lòng đăng nhập để tải lên đề xuất!");
+                return;
+            }
+            console.log('currentUser:', currentUser);
+            if (currentUser.role === 'accountant') {
+                console.error('Lỗi: Tài khoản kế toán không được phép tải lên');
+                showUploadError("Tài khoản kế toán không được phép tải lên đề xuất!");
+                return;
+            }
+            const fileInput = document.getElementById('excelFile');
+            if (!fileInput) {
+                console.error('Lỗi: Không tìm thấy fileInput');
+                showUploadError("Lỗi giao diện: Không tìm thấy trường chọn file!");
+                return;
+            }
+            const file = fileInput.files[0];
+            if (!file) {
+                console.error('Lỗi: Không có file Excel được chọn');
+                showUploadError("Vui lòng chọn file Excel!");
+                return;
+            }
+            console.log('File được chọn:', file.name);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                console.log('Đọc file Excel thành công');
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    console.log('Dữ liệu file:', data.slice(0, 50));
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    console.log('Sheet đầu tiên:', firstSheetName);
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    console.log('Dữ liệu Excel:', jsonData);
+
+                    if (jsonData.length < 2) {
+                        console.error('Lỗi: File Excel không chứa dữ liệu');
+                        showUploadError("File không chứa dữ liệu hoặc không đúng định dạng!");
+                        return;
+                    }
+
+                    const headers = jsonData[0];
+                    console.log('Tiêu đề:', headers);
+                    const requiredColumns = ["NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ ĐỀ XUẤT", "NỘI DUNG", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"];
+                    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+                    if (missingColumns.length > 0) {
+                        console.error('Lỗi: Thiếu cột bắt buộc', missingColumns);
+                        showUploadError(`File thiếu các cột bắt buộc: ${missingColumns.join(', ')}`);
+                        return;
+                    }
+
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        console.error('Lỗi: Token không tồn tại');
+                        showUploadError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
+                        return;
+                    }
+                    console.log('Token:', token.slice(0, 20) + '...');
+
+                    const newProposals = [];
+                    const duplicates = new Set();
+                    const existingCodes = new Set(proposals.map(p => `${p.code || ''}-${p.branch}`));
+                    console.log('Mã đề xuất hiện có:', existingCodes);
+
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        console.log(`Xử lý hàng ${i + 1}:`, row);
+                        if (row.length === 0 || row.every(cell => cell === null || cell === undefined || cell === '')) {
+                            console.log(`Hàng ${i + 1} trống, bỏ qua`);
+                            continue;
+                        }
+
+                        const proposal = {};
+                        headers.forEach((header, index) => {
+                            if (index < row.length) {
+                                proposal[header] = row[index];
+                            }
+                        });
+                        console.log(`Dữ liệu hàng ${i + 1}:`, proposal);
+
+                        const formattedProposal = {
+                            proposer: String(proposal["NGƯỜI ĐỀ NGHỊ"] || '').trim(),
+                            room: String(proposal["PHÒNG BAN"] || '').trim(),
+                            branch: currentUser.branch,
+                            department: String(proposal["BỘ PHẬN"] || '').trim(),
+                            date: formatDateToDDMMYYYY(proposal["NGÀY THÁNG"]) || '',
+                            code: String(proposal["MÃ ĐỀ XUẤT"] || '').trim(),
+                            content: String(proposal["NỘI DUNG"] || '').trim(),
+                            purpose: String(proposal["MỤC ĐÍCH"] || '').trim(),
+                            supplier: String(proposal["NHÀ CUNG CẤP"] || '').trim(),
+                            estimated_cost: parseFloat(proposal["DỰ TÍNH NGÂN SÁCH"]) || 0,
+                            approved_amount: 0,
+                            transfer_code: '',
+                            payment_date: '',
+                            notes: '',
+                            status: 'Đang xử lý',
+                            approver: '',
+                            approval_date: '',
+                            completed: 'No'
+                        };
+                        console.log(`Đề xuất định dạng hàng ${i + 1}:`, formattedProposal);
+
+                        const requiredFields = [
+                            { key: 'proposer', name: 'NGƯỜI ĐỀ NGHỊ' },
+                            { key: 'room', name: 'PHÒNG BAN' },
+                            { key: 'department', name: 'BỘ PHẬN' },
+                            { key: 'date', name: 'NGÀY THÁNG' },
+                            { key: 'code', name: 'MÃ ĐỀ XUẤT' },
+                            { key: 'content', name: 'NỘI DUNG' },
+                            { key: 'supplier', name: 'NHÀ CUNG CẤP' },
+                            { key: 'estimated_cost', name: 'DỰ TÍNH NGÂN SÁCH' }
+                        ];
+                        const missingFields = requiredFields.filter(field => {
+                            if (field.key === 'estimated_cost') {
+                                return isNaN(formattedProposal[field.key]) || formattedProposal[field.key] <= 0;
+                            }
+                            return !formattedProposal[field.key] || String(formattedProposal[field.key]).trim() === '';
+                        });
+                        if (missingFields.length > 0) {
+                            console.error(`Lỗi: Hàng ${i + 1} thiếu trường bắt buộc`, missingFields);
+                            showUploadError(`Hàng ${i + 1} thiếu hoặc không hợp lệ các trường bắt buộc: ${missingFields.map(f => f.name).join(', ')}`);
+                            return;
+                        }
+
+                        if (formattedProposal.date && !formattedProposal.date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                            console.error(`Lỗi: Hàng ${i + 1} NGÀY THÁNG sai định dạng`);
+                            showUploadError(`Hàng ${i + 1}: NGÀY THÁNG phải có định dạng DD/MM/YYYY`);
+                            return;
+                        }
+
+                        if (isNaN(formattedProposal.estimated_cost) || formattedProposal.estimated_cost < 0) {
+                            console.error(`Lỗi: Hàng ${i + 1} DỰ TÍNH NGÂN SÁCH không hợp lệ`);
+                            showUploadError(`Hàng ${i + 1}: DỰ TÍNH NGÂN SÁCH phải là số không âm`);
+                            return;
+                        }
+
+                        const key = `${formattedProposal.code || ''}-${currentUser.branch}`;
+                        if (existingCodes.has(key)) {
+                            console.log(`Hàng ${i + 1} trùng mã đề xuất: ${key}`);
+                            duplicates.add(key);
+                            continue;
+                        }
+                        existingCodes.add(key);
+                        console.log(`Thêm đề xuất mới hàng ${i + 1}:`, formattedProposal);
+                        newProposals.push(axios.post(`${API_URL}/proposals`, formattedProposal, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        }));
+                    }
+
+                    if (newProposals.length === 0) {
+                        console.error('Lỗi: Không có đề xuất mới để tải lên');
+                        showUploadError("Không có đề xuất mới để tải lên hoặc tất cả đề xuất trùng lặp!");
+                        return;
+                    }
+                    console.log('Gửi', newProposals.length, 'yêu cầu POST /api/proposals');
+
+                    Promise.all(newProposals)
+                        .then(() => {
+                            console.log('Tải lên thành công', newProposals.length, 'đề xuất');
+                            showUploadSuccess(`Đã tải lên thành công ${newProposals.length} đề xuất mới từ chi nhánh ${currentUser.branch}!`);
+                            fileInput.value = '';
+                            loadProposalData();
+                            if (duplicates.size > 0) {
+                                alert(`Có ${duplicates.size} đề xuất trùng lặp đã bị bỏ qua và không được thêm vào.`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Lỗi khi gửi yêu cầu POST /api/proposals:', error);
+                            const errorMessage = error.response?.data?.message || 'Lỗi khi tải lên đề xuất. Vui lòng kiểm tra dữ liệu và thử lại.';
+                            showUploadError(`Lỗi server: ${errorMessage}`);
+                        });
+                } catch (error) {
+                    console.error('Lỗi xử lý file Excel:', error);
+                    showUploadError("Lỗi khi xử lý file Excel: " + error.message);
+                }
+            };
+
+            reader.onerror = function() {
+                console.error('Lỗi đọc file Excel');
+                showUploadError("Lỗi khi đọc file!");
+            };
+
+            console.log('Bắt đầu đọc file Excel');
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadExcelTemplate() {
+            console.log('downloadExcelTemplate');
+            const wb = XLSX.utils.book_new();
+            const headers = [
+                "NGƯỜI ĐỀ NGHỊ", "PHÒNG BAN", "BỘ PHẬN", "NGÀY THÁNG", "MÃ ĐỀ XUẤT", 
+                "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH"
+            ];
+            const sampleData = [
+                headers,
+                ["Nguyễn Văn A", "Kinh Doanh", "KD", "01/05/2025", "DX001", "Mua laptop phục vụ công việc", 
+                 "Phục vụ công việc hàng ngày", "Công ty ABC", 15000000],
+                ["Trần Thị B", "Hành Chính Nhân Sự", "HCNS", "02/05/2025", "DX002", "Mua máy in phục vụ văn phòng", 
+                 "Phục vụ in ấn tài liệu", "Công ty XYZ", 5000000]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "DE_XUAT_THANH_TOAN_TEMPLATE.xlsx");
+        }
+
+        function exportSummaryReport(branchType) {
+            console.log('exportSummaryReport:', branchType);
+            const token = localStorage.getItem('token');
+            axios.get(`${API_URL}/proposals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(response => {
+                    console.log('Tải dữ liệu để xuất báo cáo:', response.data);
+                    const filteredData = response.data.filter(p => p.branch.startsWith(branchType));
+                    if (filteredData.length === 0) {
+                        console.log(`Không có dữ liệu cho chi nhánh ${branchType}`);
+                        alert(`Không có dữ liệu từ các chi nhánh ${branchType} để xuất báo cáo!`);
+                        return;
+                    }
+                    const wb = XLSX.utils.book_new();
+                    const headers = [
+                        "STT", "NGÀY THÁNG", "CHI NHÁNH", "PHÒNG BAN", "NGƯỜI ĐỀ NGHỊ", "BỘ PHẬN", "MÃ ĐỀ XUẤT", 
+                        "NỘI DUNG", "MỤC ĐÍCH", "NHÀ CUNG CẤP", "DỰ TÍNH NGÂN SÁCH", 
+                        "SỐ TIỀN ĐƯỢC DUYỆT", "MÃ CHUYỂN KHOẢN", "NGÀY THANH TOÁN", "TRẠNG THÁI", 
+                        "NGƯỜI DUYỆT", "NGÀY DUYỆT", "HOÀN THÀNH", "GHI CHÚ"
+                    ];
+                    const data = [headers];
+                    filteredData.forEach((item, index) => {
+                        const isBranchUser = currentUser.role !== 'accountant';
+                        const isCompleted = item.completed === 'Yes';
+                        const transferCode = isBranchUser && !isCompleted ? '' : item.transfer_code || '';
+                        const paymentDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(item.payment_date) || '';
+                        const approver = isBranchUser && !isCompleted ? '' : item.approver || '';
+                        const approvalDate = isBranchUser && !isCompleted ? '' : formatDateToDDMMYYYY(item.approval_date) || '';
+                        const notes = isBranchUser && !isCompleted ? '' : item.notes || '';
+
+                        data.push([
+                            index + 1,
+                            formatDateToDDMMYYYY(item.date) || '',
+                            item.branch || '',
+                            item.room || '',
+                            item.proposer || '',
+                            item.department || '',
+                            item.code || '',
+                            item.content || '',
+                            item.purpose || '',
+                            item.supplier || '',
+                            item.estimated_cost || 0,
+                            item.approved_amount || 0,
+                            transferCode,
+                            paymentDate,
+                            getStatusFromCompleted(item.completed),
+                            approver,
+                            approvalDate,
+                            item.completed || '',
+                            notes
+                        ]);
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws, "Report");
+                    XLSX.writeFile(wb, `BAO_CAO_${branchType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                })
+                .catch(error => {
+                    console.error('Lỗi khi xuất báo cáo:', error.message);
+                    alert(error.response?.data?.message || 'Lỗi khi xuất báo cáo');
+                });
+        }
+    </script>
+</head>
+<body>
+    <!-- Login Form -->
+    <div id="loginFormContainer">
+        <div class="header-w3l">
+            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="login-logo">
+            <h1>ĐĂNG NHẬP HỆ THỐNG</h1>
+        </div>
+        <div class="main-w3layouts-agileinfo">
+            <div class="wthree-form">
+                <h2>THÔNG TIN ĐĂNG NHẬP</h2>
+                <form id="loginForm">
+                    <div class="form-sub-w3">
+                        <input type="text" id="username" name="Username" placeholder="Tên đăng nhập" required />
+                        <div class="icon-w3">
+                            <i class="fa fa-user" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="form-sub-w3">
+                        <input type="password" id="password" name="Password" placeholder="Mật khẩu" required />
+                        <div class="icon-w3">
+                            <i class="fa fa-unlock-alt" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger hidden" id="loginError"></div>
+                    <div class="submit-agileits">
+                        <input type="submit" value="Đăng nhập">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="footer">
+            <p>© 2025 Hệ Thống Quản Lý Đề Xuất Mua Sắm</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="main-content hidden">
+        <div class="header text-center">
+            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
+            <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
+            <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
+            <div class="mt-2">
+                <span class="badge bg-primary" id="userBranch">Chi nhánh: </span>
+                <span class="badge bg-info" id="userName">Người dùng: </span>
+                <button class="btn btn-outline-danger btn-sm ms-2" id="logoutBtn">Đăng xuất</button>
+            </div>
+        </div>
+
+        <div class="row mb-4 no-print">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm theo người đề nghị hoặc nội dung...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">Tìm kiếm</button>
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">Xóa tìm kiếm</button>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload"></i> Tải lên đề xuất
+                </button>
+                <button class="btn btn-info ms-2" id="downloadTemplateBtn">
+                    <i class="bi bi-download"></i> Tải mẫu Excel
+                </button>
+                <button class="btn btn-primary ms-2" id="exportXDVBtn">Xuất báo cáo XDV</button>
+                <button class="btn btn-primary ms-2" id="exportPTTBtn">Xuất báo cáo PTT</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="proposalsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th data-sort="id">STT <span class="sort-icon"></span></th>
+                        <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
+                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
+                        <th data-sort="room">Phòng ban <span class="sort-icon"></span></th>
+                        <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
+                        <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
+                        <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
+                        <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
+                        <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
+                        <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
+                        <th data-sort="estimated_cost">Dự tính ngân sách <span class="sort-icon"></span></th>
+                        <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
+                        <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
+                        <th data-sort="status">Trạng thái <span class="sort-icon"></span></th>
+                        <th data-sort="approver">Người duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="approval_date">Ngày duyệt <span class="sort-icon"></span></th>
+                        <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
+                        <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
+                        <th class="no-print">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="proposalsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="pagination-container no-print" id="pagination"></div>
+    </div>
+
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="uploadModalLabel">Tải lên đề xuất từ Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm">
+                        <div class="mb-3">
+                            <label for="excelFile" class="form-label">Chọn file Excel (.xlsx hoặc .xls)</label>
+                            <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
+                        </div>
+                    </form>
+                    <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
+                    <div class="alert alert-success mt-3 hidden" id="uploadSuccess"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-success" id="confirmUploadBtn">Tải lên</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa đề xuất này không?</p>
+                    <p id="deleteModalContent"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editProposalId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Người đề nghị</label>
+                                <input type="text" class="form-control" id="editProposer" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phòng ban</label>
+                                <input type="text" class="form-control" id="editRoom" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Chi nhánh</label>
+                                <input type="text" class="form-control" id="editBranch" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bộ phận</label>
+                                <input type="text" class="form-control" id="editDepartment" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày tháng</label>
+                                <input type="text" class="form-control" id="editDate" placeholder="DD/MM/YYYY" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mã số đề xuất</label>
+                                <input type="text" class="form-control" id="editCode" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nội dung</label>
+                                <input type="text" class="form-control" id="editContent" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mục đích</label>
+                                <input type="text" class="form-control" id="editPurpose">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nhà cung cấp</label>
+                                <input type="text" class="form-control" id="editSupplier" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dự tính ngân sách</label>
+                                <input type="number" class="form-control" id="editEstimatedCost" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số tiền được duyệt</label>
+                                <input type="number" class="form-control" id="editApprovedAmount">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mã chuyển khoản</label>
+                                <input type="text" class="form-control" id="editTransferCode">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày thanh toán</label>
+                                <input type="text" class="form-control" id="editPaymentDate" placeholder="DD/MM/YYYY">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Trạng thái</label>
+                                <input type="text" class="form-control" id="editStatus" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Người duyệt</label>
+                                <input type="text" class="form-control" id="editApprover">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày duyệt</label>
+                                <input type="text" class="form-control" id="editApprovalDate" placeholder="DD/MM/YYYY">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Hoàn thành</label>
+                                <input type="text" class="form-control" id="editCompleted">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" id="editNotes">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
