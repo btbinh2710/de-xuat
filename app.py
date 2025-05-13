@@ -30,8 +30,12 @@ def init_db():
             return False
         c = conn.cursor()
         
+        # Xóa bảng cũ để khởi tạo lại
+        c.execute('DROP TABLE IF EXISTS users')
+        c.execute('DROP TABLE IF EXISTS proposals')
+
         # Tạo bảng users
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
+        c.execute('''CREATE TABLE users (
             username TEXT PRIMARY KEY,
             password TEXT NOT NULL,
             branch TEXT NOT NULL,
@@ -39,7 +43,7 @@ def init_db():
         )''')
 
         # Tạo bảng proposals
-        c.execute('''CREATE TABLE IF NOT EXISTS proposals (
+        c.execute('''CREATE TABLE proposals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             proposer TEXT NOT NULL,
             room TEXT NOT NULL,
@@ -72,7 +76,7 @@ def init_db():
         for user in users:
             username, password, branch, role = user
             hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            c.execute('INSERT OR IGNORE INTO users (username, password, branch, role) VALUES (?, ?, ?, ?)',
+            c.execute('INSERT INTO users (username, password, branch, role) VALUES (?, ?, ?, ?)',
                      (username, hashed.decode('utf-8'), branch, role))
 
         # Thêm dữ liệu đề xuất mẫu
@@ -81,7 +85,7 @@ def init_db():
             ('Trần Thị B', 'Phòng Hành Chính', 'XDV_ThaoDien', 'Bộ phận Nhân sự', '03/05/2025', 'DX002', 'Mua bàn ghế', 'Nâng cấp văn phòng', 'Công ty XYZ', 10000000, null, null, null, 'Đang xử lý', null, null, 'No', null),
         ]
         for proposal in proposals:
-            c.execute('''INSERT OR IGNORE INTO proposals (proposer, room, branch, department, date, code, content, purpose, 
+            c.execute('''INSERT INTO proposals (proposer, room, branch, department, date, code, content, purpose, 
                         supplier, estimated_cost, approved_amount, transfer_code, payment_date, status, approver, 
                         approval_date, completed, notes) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', proposal)
