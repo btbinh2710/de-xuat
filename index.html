@@ -112,11 +112,8 @@
                 </div>
             </div>
             <div class="col-md-4 text-end">
-                <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal" data-role="non-accountant">
-                    <i class="bi bi-upload"></i> Tải lên đề xuất
-                </button>
-                <button class="btn btn-info ms-2" id="downloadTemplateBtn" data-role="non-accountant">
-                    <i class="bi bi-download"></i> Tải mẫu Excel
+                <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal" data-role="all">
+                    <i class="bi bi-upload"></i> Upload
                 </button>
                 <button class="btn btn-primary ms-2" id="exportXDVBtn" data-role="all">Xuất báo cáo XDV</button>
                 <button class="btn btn-primary ms-2" id="exportPTTBtn" data-role="all">Xuất báo cáo PTT</button>
@@ -160,7 +157,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="uploadModalLabel">Tải lên đề xuất từ Excel</h5>
+                    <h5 class="modal-title" id="uploadModalLabel">Upload đề xuất từ Excel</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -170,7 +167,7 @@
                             <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
                         </div>
                         <div class="alert alert-info">
-                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
+                            <strong>Lưu ý:</strong> File Excel cần có các cột: STT, MÃ SỐ ĐỀ XUẤT, SỐ TIỀN ĐƯỢC DUYỆT, MÃ CHUYỂN KHOẢN, NGÀY THANH TOÁN, TRẠNG THÁI, NGƯỜI DUYỆT, NGÀY DUYỆT, HOÀN THÀNH, GHI CHÚ.
                         </div>
                     </form>
                     <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
@@ -181,7 +178,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-success" id="confirmUploadBtn">Tải lên</button>
+                    <button type="button" class="btn btn-success" id="confirmUploadBtn">Upload</button>
                 </div>
             </div>
         </div>
