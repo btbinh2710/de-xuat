@@ -23,17 +23,14 @@ function exportSummaryReport(branchType) {
             filteredData.forEach((item, index) => {
                 const isAccountant = currentUser.role === 'accountant';
                 const isCompleted = item.completed === 'Yes';
-                let showRestrictedColumns = false;
-                if (isAccountant) {
-                    showRestrictedColumns = item.approved_amount != null && item.approved_amount !== '' &&
-                                          item.transfer_code && item.transfer_code.trim() !== '' &&
-                                          item.payment_date && item.payment_date.trim() !== '' &&
-                                          item.status && item.status.trim() !== '' &&
-                                          item.approver && item.approver.trim() !== '' &&
-                                          item.notes && item.notes.trim() !== '';
-                } else {
-                    showRestrictedColumns = isCompleted;
-                }
+                const showRestrictedColumns = isAccountant ? 
+                    (item.approved_amount != null && item.approved_amount !== '' && 
+                     item.transfer_code && item.transfer_code.trim() !== '' && 
+                     item.payment_date && item.payment_date.trim() !== '' && 
+                     item.status && item.status.trim() !== '' && 
+                     item.approver && item.approver.trim() !== '' && 
+                     item.notes && item.notes.trim() !== '') : 
+                    isCompleted;
 
                 const approvedAmount = showRestrictedColumns ? item.approved_amount || 0 : '';
                 const transferCode = showRestrictedColumns ? item.transfer_code || '' : '';

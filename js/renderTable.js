@@ -38,22 +38,15 @@ function renderTable() {
         const isAccountant = currentUser.role === 'accountant';
         const isCompleted = proposal.completed === 'Yes';
 
-        // Kiểm tra điều kiện hiển thị cho các cột
-        let showRestrictedColumns = false;
-        if (isAccountant) {
-            // Tài khoản kế toán: Chỉ hiển thị nếu tất cả các trường đều có giá trị
-            showRestrictedColumns = proposal.approved_amount != null && proposal.approved_amount !== '' &&
-                                   proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
-                                   proposal.payment_date && proposal.payment_date.trim() !== '' &&
-                                   proposal.status && proposal.status.trim() !== '' &&
-                                   proposal.approver && proposal.approver.trim() !== '' &&
-                                   proposal.notes && proposal.notes.trim() !== '';
-        } else {
-            // Tài khoản chi nhánh: Chỉ hiển thị nếu đã hoàn thành
-            showRestrictedColumns = isCompleted;
-        }
+        const showRestrictedColumns = isAccountant ? 
+            (proposal.approved_amount != null && proposal.approved_amount !== '' && 
+             proposal.transfer_code && proposal.transfer_code.trim() !== '' && 
+             proposal.payment_date && proposal.payment_date.trim() !== '' && 
+             proposal.status && proposal.status.trim() !== '' && 
+             proposal.approver && proposal.approver.trim() !== '' && 
+             proposal.notes && proposal.notes.trim() !== '') : 
+            isCompleted;
 
-        // Gán giá trị cho các cột bị kiểm soát
         const approvedAmount = showRestrictedColumns ? formatCurrency(proposal.approved_amount) : '';
         const transferCode = showRestrictedColumns ? sanitizeHTML(proposal.transfer_code || '') : '';
         const paymentDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.payment_date) : '';

@@ -7,7 +7,6 @@ const itemsPerPage = 10;
 let currentSortColumn = '';
 let currentSortDirection = 'asc';
 
-// Hàm xử lý XSS
 function sanitizeHTML(str) {
     const div = document.createElement('div');
     div.textContent = str;
