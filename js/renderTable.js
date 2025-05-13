@@ -38,13 +38,15 @@ function renderTable() {
         const isAccountant = currentUser.role === 'accountant';
         const isCompleted = proposal.completed === 'Yes';
 
+        // Kiểm tra điều kiện hiển thị các cột nhạy cảm
         const showRestrictedColumns = isAccountant ? 
-            (proposal.approved_amount != null && proposal.approved_amount !== '' && 
-             proposal.transfer_code && proposal.transfer_code.trim() !== '' && 
-             proposal.payment_date && proposal.payment_date.trim() !== '' && 
-             proposal.status && proposal.status.trim() !== '' && 
-             proposal.approver && proposal.approver.trim() !== '' && 
-             proposal.notes && proposal.notes.trim() !== '') : 
+            (proposal.approved_amount != null && proposal.approved_amount !== '' &&
+             proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
+             proposal.payment_date && proposal.payment_date.trim() !== '' &&
+             proposal.approver && proposal.approver.trim() !== '' &&
+             proposal.approval_date && proposal.approval_date.trim() !== '' &&
+             proposal.completed && proposal.completed.trim() !== '' &&
+             proposal.notes && proposal.notes.trim() !== '') :
             isCompleted;
 
         const approvedAmount = showRestrictedColumns ? formatCurrency(proposal.approved_amount) : '';
@@ -52,6 +54,8 @@ function renderTable() {
         const paymentDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.payment_date) : '';
         const status = showRestrictedColumns ? sanitizeHTML(getStatusFromCompleted(proposal.completed)) : '';
         const approver = showRestrictedColumns ? sanitizeHTML(proposal.approver || '') : '';
+        const approvalDate = showRestrictedColumns ? formatDateToDDMMYYYY(proposal.approval_date) : '';
+        const completed = showRestrictedColumns ? `<span class="completed-btn ${proposal.completed === 'Yes' ? 'completed' : ''}" data-id="${proposal.id}">${proposal.completed === 'Yes' ? 'O' : 'X'}</span>` : '';
         const notes = showRestrictedColumns ? sanitizeHTML(proposal.notes || '') : '';
 
         row.innerHTML = `
@@ -71,8 +75,8 @@ function renderTable() {
             <td>${paymentDate}</td>
             <td>${status}</td>
             <td>${approver}</td>
-            <td>${formatDateToDDMMYYYY(proposal.approval_date)}</td>
-            <td><span class="completed-btn ${proposal.completed === 'Yes' ? 'completed' : ''}" data-id="${proposal.id}">${proposal.completed === 'Yes' ? 'O' : 'X'}</span></td>
+            <td>${approvalDate}</td>
+            <td>${completed}</td>
             <td>${notes}</td>
             <td class="no-print">
                 ${currentUser.role !== 'accountant' ? `

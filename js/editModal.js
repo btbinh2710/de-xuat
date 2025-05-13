@@ -33,12 +33,13 @@ function openEditModal(proposalId) {
             const isAccountant = currentUser.role === 'accountant';
             const isCompleted = proposal.completed === 'Yes';
             const showRestrictedFields = isAccountant ? 
-                (proposal.approved_amount != null && proposal.approved_amount !== '' && 
-                 proposal.transfer_code && proposal.transfer_code.trim() !== '' && 
-                 proposal.payment_date && proposal.payment_date.trim() !== '' && 
-                 proposal.status && proposal.status.trim() !== '' && 
-                 proposal.approver && proposal.approver.trim() !== '' && 
-                 proposal.notes && proposal.notes.trim() !== '') : 
+                (proposal.approved_amount != null && proposal.approved_amount !== '' &&
+                 proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
+                 proposal.payment_date && proposal.payment_date.trim() !== '' &&
+                 proposal.approver && proposal.approver.trim() !== '' &&
+                 proposal.approval_date && proposal.approval_date.trim() !== '' &&
+                 proposal.completed && proposal.completed.trim() !== '' &&
+                 proposal.notes && proposal.notes.trim() !== '') :
                 isCompleted;
 
             if (!showRestrictedFields) {
@@ -47,12 +48,16 @@ function openEditModal(proposalId) {
                 document.getElementById('editPaymentDate').value = '';
                 document.getElementById('editStatus').value = '';
                 document.getElementById('editApprover').value = '';
+                document.getElementById('editApprovalDate').value = '';
+                document.getElementById('editCompleted').value = '';
                 document.getElementById('editNotes').value = '';
                 document.getElementById('editApprovedAmount').setAttribute('readonly', 'readonly');
                 document.getElementById('editTransferCode').setAttribute('readonly', 'readonly');
                 document.getElementById('editPaymentDate').setAttribute('readonly', 'readonly');
                 document.getElementById('editStatus').setAttribute('readonly', 'readonly');
                 document.getElementById('editApprover').setAttribute('readonly', 'readonly');
+                document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
+                document.getElementById('editCompleted').setAttribute('readonly', 'readonly');
                 document.getElementById('editNotes').setAttribute('readonly', 'readonly');
             } else {
                 document.getElementById('editApprovedAmount').removeAttribute('readonly');
@@ -60,6 +65,8 @@ function openEditModal(proposalId) {
                 document.getElementById('editPaymentDate').removeAttribute('readonly');
                 document.getElementById('editStatus').removeAttribute('readonly');
                 document.getElementById('editApprover').removeAttribute('readonly');
+                document.getElementById('editApprovalDate').removeAttribute('readonly');
+                document.getElementById('editCompleted').removeAttribute('readonly');
                 document.getElementById('editNotes').removeAttribute('readonly');
             }
 
@@ -74,8 +81,6 @@ function openEditModal(proposalId) {
                 document.getElementById('editPurpose').setAttribute('readonly', 'readonly');
                 document.getElementById('editSupplier').setAttribute('readonly', 'readonly');
                 document.getElementById('editEstimatedCost').setAttribute('readonly', 'readonly');
-                document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
-                document.getElementById('editCompleted').setAttribute('readonly', 'readonly');
             } else {
                 document.getElementById('editProposer').removeAttribute('readonly');
                 document.getElementById('editRoom').removeAttribute('readonly');
@@ -87,8 +92,6 @@ function openEditModal(proposalId) {
                 document.getElementById('editPurpose').removeAttribute('readonly');
                 document.getElementById('editSupplier').removeAttribute('readonly');
                 document.getElementById('editEstimatedCost').removeAttribute('readonly');
-                document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
-                document.getElementById('editCompleted').setAttribute('readonly', 'readonly');
             }
 
             console.log('Mở modal chỉnh sửa');
