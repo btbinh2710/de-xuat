@@ -38,295 +38,295 @@
         return gk_fileData[filename] || "";
         }
         </script><!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-    <!-- Login Form -->
-    <div id="loginFormContainer">
-        <div class="header-w3l">
-            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="login-logo">
-            <h1>ĐĂNG NHẬP HỆ THỐNG</h1>
-        </div>
-        <div class="main-w3layouts-agileinfo">
-            <div class="wthree-form">
-                <h2>THÔNG TIN ĐĂNG NHẬP</h2>
-                <form id="loginForm">
-                    <div class="form-sub-w3">
-                        <label for="username" class="form-label">Tên đăng nhập</label>
-                        <input type="text" id="username" name="username" placeholder="Tên đăng nhập" autocomplete="username" required />
-                        <div class="icon-w3">
-                            <i class="fa fa-user" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                    <div class="form-sub-w3">
-                        <label for="password" class="form-label">Mật khẩu</label>
-                        <input type="password" id="password" name="password" placeholder="Mật khẩu" autocomplete="current-password" required />
-                        <div class="icon-w3">
-                            <i class="fa fa-unlock-alt" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                    <div class="alert alert-danger hidden" id="loginError"></div>
-                    <div class="submit-agileits">
-                        <input type="submit" value="Đăng nhập">
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="footer">
-            <p>© 2025 Hệ Thống Quản Lý Đề Xuất Mua Sắm</p>
-        </div>
-    </div>
+  <html lang="vi">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      <title>Hệ Thống Quản Lý Đề Xuất Mua Sắm</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+      <!-- Login Form -->
+      <div id="loginFormContainer">
+          <div class="header-w3l">
+              <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="login-logo">
+              <h1>ĐĂNG NHẬP HỆ THỐNG</h1>
+          </div>
+          <div class="main-w3layouts-agileinfo">
+              <div class="wthree-form">
+                  <h2>THÔNG TIN ĐĂNG NHẬP</h2>
+                  <form id="loginForm">
+                      <div class="form-sub-w3">
+                          <label for="username" class="form-label">Tên đăng nhập</label>
+                          <input type="text" id="username" name="username" placeholder="Tên đăng nhập" autocomplete="username" required />
+                          <div class="icon-w3">
+                              <i class="fa fa-user" aria-hidden="true"></i>
+                          </div>
+                      </div>
+                      <div class="form-sub-w3">
+                          <label for="password" class="form-label">Mật khẩu</label>
+                          <input type="password" id="password" name="password" placeholder="Mật khẩu" autocomplete="current-password" required />
+                          <div class="icon-w3">
+                              <i class="fa fa-unlock-alt" aria-hidden="true"></i>
+                          </div>
+                      </div>
+                      <div class="alert alert-danger hidden" id="loginError"></div>
+                      <div class="submit-agileits">
+                          <input type="submit" value="Đăng nhập">
+                      </div>
+                  </form>
+              </div>
+          </div>
+          <div class="footer">
+              <p>© 2025 Hệ Thống Quản Lý Đề Xuất Mua Sắm</p>
+          </div>
+      </div>
 
-    <!-- Main Content -->
-    <div id="mainContent" class="main-content hidden">
-        <div class="header text-center">
-            <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
-            <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
-            <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
-            <div class="mt-2">
-                <span class="badge bg-primary" id="userBranch">Chi nhánh: </span>
-                <span class="badge bg-info" id="userName">Người dùng: </span>
-                <button class="btn btn-outline-danger btn-sm ms-2" id="logoutBtn">Đăng xuất</button>
-            </div>
-        </div>
+      <!-- Main Content -->
+      <div id="mainContent" class="main-content hidden">
+          <div class="header text-center">
+              <img src="https://vinfastphantrongtue.com/wp-content/uploads/2023/10/LOGO.jpg" alt="VinFast Phan Trọng Tuệ Logo" class="main-logo">
+              <h2 class="fw-bold">Hệ Thống Quản Lý Đề Xuất Mua Sắm</h2>
+              <h4>CÔNG TY CỔ PHẦN 27-7 HỒNG QUANG</h4>
+              <div class="mt-2">
+                  <span class="badge bg-primary" id="userBranch">Chi nhánh: </span>
+                  <span class="badge bg-info" id="userName">Người dùng: </span>
+                  <button class="btn btn-outline-danger btn-sm ms-2" id="logoutBtn">Đăng xuất</button>
+              </div>
+          </div>
 
-        <div class="row mb-4 no-print">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm theo người đề nghị hoặc nội dung...">
-                    <button class="btn btn-outline-secondary" type="button" id="searchBtn">Tìm kiếm</button>
-                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">Xóa tìm kiếm</button>
-                </div>
-            </div>
-            <div class="col-md-4 text-end">
-                <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                    <i class="bi bi-upload"></i> Tải lên đề xuất
-                </button>
-                <button class="btn btn-info ms-2" id="downloadTemplateBtn">
-                    <i class="bi bi-download"></i> Tải mẫu Excel
-                </button>
-                <button class="btn btn-primary ms-2" id="exportXDVBtn">Xuất báo cáo XDV</button>
-                <button class="btn btn-primary ms-2" id="exportPTTBtn">Xuất báo cáo PTT</button>
-            </div>
-        </div>
+          <div class="row mb-4 no-print">
+              <div class="col-md-8">
+                  <div class="input-group">
+                      <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm theo người đề nghị hoặc nội dung...">
+                      <button class="btn btn-outline-secondary" type="button" id="searchBtn">Tìm kiếm</button>
+                      <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">Xóa tìm kiếm</button>
+                  </div>
+              </div>
+              <div class="col-md-4 text-end">
+                  <button class="btn btn-success" id="uploadBtn" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                      <i class="bi bi-upload"></i> Tải lên đề xuất
+                  </button>
+                  <button class="btn btn-info ms-2" id="downloadTemplateBtn">
+                      <i class="bi bi-download"></i> Tải mẫu Excel
+                  </button>
+                  <button class="btn btn-primary ms-2" id="exportXDVBtn">Xuất báo cáo XDV</button>
+                  <button class="btn btn-primary ms-2" id="exportPTTBtn">Xuất báo cáo PTT</button>
+              </div>
+          </div>
 
-        <div class="table-responsive">
-            <table class="table table-striped table-hover" id="proposalsTable">
-                <thead class="table-dark">
-                    <tr>
-                        <th data-sort="id">STT <span class="sort-icon"></span></th>
-                        <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
-                        <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
-                        <th data-sort="room">Phòng ban <span class="sort-icon"></span></th>
-                        <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
-                        <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
-                        <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
-                        <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
-                        <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
-                        <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
-                        <th data-sort="estimated_cost">Dự tính ngân sách <span class="sort-icon"></span></th>
-                        <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
-                        <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
-                        <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
-                        <th data-sort="status">Trạng thái <span class="sort-icon"></span></th>
-                        <th data-sort="approver">Người duyệt <span class="sort-icon"></span></th>
-                        <th data-sort="approval_date">Ngày duyệt <span class="sort-icon"></span></th>
-                        <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
-                        <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
-                        <th class="no-print">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody id="proposalsTableBody"></tbody>
-            </table>
-        </div>
+          <div class="table-responsive">
+              <table class="table table-striped table-hover" id="proposalsTable">
+                  <thead class="table-dark">
+                      <tr>
+                          <th data-sort="id">STT <span class="sort-icon"></span></th>
+                          <th data-sort="date">Ngày tháng <span class="sort-icon"></span></th>
+                          <th data-sort="branch">Chi nhánh <span class="sort-icon"></span></th>
+                          <th data-sort="room">Phòng ban <span class="sort-icon"></span></th>
+                          <th data-sort="proposer">Người đề nghị <span class="sort-icon"></span></th>
+                          <th data-sort="department">Bộ phận <span class="sort-icon"></span></th>
+                          <th data-sort="code">Mã số đề xuất <span class="sort-icon"></span></th>
+                          <th data-sort="content">Nội dung <span class="sort-icon"></span></th>
+                          <th data-sort="purpose">Mục đích <span class="sort-icon"></span></th>
+                          <th data-sort="supplier">Nhà cung cấp <span class="sort-icon"></span></th>
+                          <th data-sort="estimated_cost">Dự tính ngân sách <span class="sort-icon"></span></th>
+                          <th data-sort="approved_amount">Số tiền được duyệt <span class="sort-icon"></span></th>
+                          <th data-sort="transfer_code">Mã chuyển khoản <span class="sort-icon"></span></th>
+                          <th data-sort="payment_date">Ngày thanh toán <span class="sort-icon"></span></th>
+                          <th data-sort="status">Trạng thái <span class="sort-icon"></span></th>
+                          <th data-sort="approver">Người duyệt <span class="sort-icon"></span></th>
+                          <th data-sort="approval_date">Ngày duyệt <span class="sort-icon"></span></th>
+                          <th data-sort="completed">Hoàn thành <span class="sort-icon"></span></th>
+                          <th data-sort="notes">Ghi chú <span class="sort-icon"></span></th>
+                          <th class="no-print">Hành động</th>
+                      </tr>
+                  </thead>
+                  <tbody id="proposalsTableBody"></tbody>
+              </table>
+          </div>
 
-        <div class="pagination-container no-print" id="pagination"></div>
-    </div>
+          <div class="pagination-container no-print" id="pagination"></div>
+      </div>
 
-    <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="uploadModalLabel">Tải lên đề xuất từ Excel</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="uploadForm">
-                        <div class="mb-3">
-                            <label for="excelFile" class="form-label">Chọn file Excel (.xlsx hoặc .xls)</label>
-                            <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
-                        </div>
-                        <div class="alert alert-info">
-                            <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
-                        </div>
-                    </form>
-                    <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
-                    <div class="alert alert-success mt-3 hidden" id="uploadSuccess"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-success" id="confirmUploadBtn">Tải lên</button>
-                </div>
-            </div>
-        </div>
-    </div>
+      <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+              <div class="modal-content">
+                  <div class="modal-header bg-success text-white">
+                      <h5 class="modal-title" id="uploadModalLabel">Tải lên đề xuất từ Excel</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <form id="uploadForm">
+                          <div class="mb-3">
+                              <label for="excelFile" class="form-label">Chọn file Excel (.xlsx hoặc .xls)</label>
+                              <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls" required>
+                          </div>
+                          <div class="alert alert-info">
+                              <strong>Lưu ý:</strong> File Excel cần có các cột: NGƯỜI ĐỀ NGHỊ, PHÒNG BAN, BỘ PHẬN, NGÀY THÁNG, MÃ ĐỀ XUẤT, NỘI DUNG, NHÀ CUNG CẤP, DỰ TÍNH NGÂN SÁCH.
+                          </div>
+                      </form>
+                      <div class="alert alert-danger mt-3 hidden" id="uploadError"></div>
+                      <div class="alert alert-success mt-3 hidden" id="uploadSuccess"></div>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                      <button type="button" class="btn btn-success" id="confirmUploadBtn">Tải lên</button>
+                  </div>
+              </div>
+          </div>
+      </div>
 
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Bạn có chắc chắn muốn xóa đề xuất này không?</p>
-                    <p id="deleteModalContent"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
-                </div>
-            </div>
-        </div>
-    </div>
+      <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+              <div class="modal-content">
+                  <div class="modal-header bg-danger text-white">
+                      <h5 class="modal-title" id="deleteModalLabel">Xác nhận xóa</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <p>Bạn có chắc chắn muốn xóa đề xuất này không?</p>
+                      <p id="deleteModalContent"></p>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                      <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
+                  </div>
+              </div>
+          </div>
+      </div>
 
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editForm">
-                        <input type="hidden" id="editProposalId">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editProposer" class="form-label">Người đề nghị</label>
-                                <input type="text" class="form-control" id="editProposer" name="proposer" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editRoom" class="form-label">Phòng ban</label>
-                                <input type="text" class="form-control" id="editRoom" name="room" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editBranch" class="form-label">Chi nhánh</label>
-                                <input type="text" class="form-control" id="editBranch" name="branch" readonly>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editDepartment" class="form-label">Bộ phận</label>
-                                <input type="text" class="form-control" id="editDepartment" name="department" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editDate" class="form-label">Ngày tháng</label>
-                                <input type="text" class="form-control" id="editDate" name="date" placeholder="DD/MM/YYYY" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editCode" class="form-label">Mã số đề xuất</label>
-                                <input type="text" class="form-control" id="editCode" name="code" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editContent" class="form-label">Nội dung</label>
-                                <input type="text" class="form-control" id="editContent" name="content" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editPurpose" class="form-label">Mục đích</label>
-                                <input type="text" class="form-control" id="editPurpose" name="purpose">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editSupplier" class="form-label">Nhà cung cấp</label>
-                                <input type="text" class="form-control" id="editSupplier" name="supplier" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editEstimatedCost" class="form-label">Dự tính ngân sách</label>
-                                <input type="number" class="form-control" id="editEstimatedCost" name="estimated_cost" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editApprovedAmount" class="form-label">Số tiền được duyệt</label>
-                                <input type="number" class="form-control" id="editApprovedAmount" name="approved_amount">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editTransferCode" class="form-label">Mã chuyển khoản</label>
-                                <input type="text" class="form-control" id="editTransferCode" name="transfer_code">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editPaymentDate" class="form-label">Ngày thanh toán</label>
-                                <input type="text" class="form-control" id="editPaymentDate" name="payment_date" placeholder="DD/MM/YYYY">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editStatus" class="form-label">Trạng thái</label>
-                                <input type="text" class="form-control" id="editStatus" name="status" readonly>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editApprover" class="form-label">Người duyệt</label>
-                                <input type="text" class="form-control" id="editApprover" name="approver">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editApprovalDate" class="form-label">Ngày duyệt</label>
-                                <input type="text" class="form-control" id="editApprovalDate" name="approval_date" placeholder="DD/MM/YYYY">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="editCompleted" class="form-label">Hoàn thành</label>
-                                <input type="text" class="form-control" id="editCompleted" name="completed">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="editNotes" class="form-label">Ghi chú</label>
-                                <input type="text" class="form-control" id="editNotes" name="notes">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
-                </div>
-            </div>
-        </div>
-    </div>
+      <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                  <div class="modal-header bg-primary text-white">
+                      <h5 class="modal-title" id="editModalLabel">Chỉnh sửa đề xuất</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <form id="editForm">
+                          <input type="hidden" id="editProposalId">
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editProposer" class="form-label">Người đề nghị</label>
+                                  <input type="text" class="form-control" id="editProposer" name="proposer" required>
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editRoom" class="form-label">Phòng ban</label>
+                                  <input type="text" class="form-control" id="editRoom" name="room" required>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editBranch" class="form-label">Chi nhánh</label>
+                                  <input type="text" class="form-control" id="editBranch" name="branch" readonly>
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editDepartment" class="form-label">Bộ phận</label>
+                                  <input type="text" class="form-control" id="editDepartment" name="department" required>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editDate" class="form-label">Ngày tháng</label>
+                                  <input type="text" class="form-control" id="editDate" name="date" placeholder="DD/MM/YYYY" required>
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editCode" class="form-label">Mã số đề xuất</label>
+                                  <input type="text" class="form-control" id="editCode" name="code" required>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editContent" class="form-label">Nội dung</label>
+                                  <input type="text" class="form-control" id="editContent" name="content" required>
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editPurpose" class="form-label">Mục đích</label>
+                                  <input type="text" class="form-control" id="editPurpose" name="purpose">
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editSupplier" class="form-label">Nhà cung cấp</label>
+                                  <input type="text" class="form-control" id="editSupplier" name="supplier" required>
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editEstimatedCost" class="form-label">Dự tính ngân sách</label>
+                                  <input type="number" class="form-control" id="editEstimatedCost" name="estimated_cost" required>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editApprovedAmount" class="form-label">Số tiền được duyệt</label>
+                                  <input type="number" class="form-control" id="editApprovedAmount" name="approved_amount">
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editTransferCode" class="form-label">Mã chuyển khoản</label>
+                                  <input type="text" class="form-control" id="editTransferCode" name="transfer_code">
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editPaymentDate" class="form-label">Ngày thanh toán</label>
+                                  <input type="text" class="form-control" id="editPaymentDate" name="payment_date" placeholder="DD/MM/YYYY">
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editStatus" class="form-label">Trạng thái</label>
+                                  <input type="text" class="form-control" id="editStatus" name="status" readonly>
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editApprover" class="form-label">Người duyệt</label>
+                                  <input type="text" class="form-control" id="editApprover" name="approver">
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editApprovalDate" class="form-label">Ngày duyệt</label>
+                                  <input type="text" class="form-control" id="editApprovalDate" name="approval_date" placeholder="DD/MM/YYYY">
+                              </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-6 mb-3">
+                                  <label for="editCompleted" class="form-label">Hoàn thành</label>
+                                  <input type="text" class="form-control" id="editCompleted" name="completed">
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                  <label for="editNotes" class="form-label">Ghi chú</label>
+                                  <input type="text" class="form-control" id="editNotes" name="notes">
+                              </div>
+                          </div>
+                      </form>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                      <button type="button" class="btn btn-primary" id="saveEditBtn">Lưu</button>
+                  </div>
+              </div>
+          </div>
+      </div>
 
-    <!-- Thêm các thư viện JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Thêm các file JavaScript -->
-    <script src="js/init.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/renderTable.js"></script>
-    <script src="js/editModal.js"></script>
-    <script src="js/saveChanges.js"></script>
-    <script src="js/deleteProposal.js"></script>
-    <script src="js/exportReport.js"></script>
-    <script src="js/uploadExcel.js"></script>
-    <script src="js/searchSort.js"></script>
-    <script src="js/pagination.js"></script>
-    <script src="js/initEventListeners.js"></script>
-    <script src="js/downloadExcelTemplate.js"></script>
-    <script src="js/loadProposalData.js"></script>
-    <script src="js/toggleCompleted.js"></script>
-</body>
-</html>
+      <!-- Thêm các thư viện JavaScript -->
+      <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+      <!-- Thêm các file JavaScript -->
+      <script src="js/init.js"></script>
+      <script src="js/auth.js"></script>
+      <script src="js/renderTable.js"></script>
+      <script src="js/editModal.js"></script>
+      <script src="js/saveChanges.js"></script>
+      <script src="js/deleteProposal.js"></script>
+      <script src="js/exportReport.js"></script>
+      <script src="js/uploadExcel.js"></script>
+      <script src="js/searchSort.js"></script>
+      <script src="js/pagination.js"></script>
+      <script src="js/initEventListeners.js"></script>
+      <script src="js/downloadExcelTemplate.js"></script>
+      <script src="js/loadProposalData.js"></script>
+      <script src="js/toggleCompleted.js"></script>
+  </body>
+  </html>
