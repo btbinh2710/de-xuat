@@ -32,40 +32,21 @@ function openEditModal(proposalId) {
             document.getElementById('editApprovedAmount').value = proposal.approved_amount || '';
             document.getElementById('editTransferCode').value = proposal.transfer_code || '';
             document.getElementById('editPaymentDate').value = formatDateToDDMMYYYY(proposal.payment_date) || '';
-            document.getElementById('editStatus').value = getStatusFromCompleted(proposal.completed);
+            document.getElementById('editStatus').value = proposal.transfer_code && proposal.transfer_code.trim() !== '' ? 'Hoàn thành' : 'Đang xử lý';
             document.getElementById('editApprover').value = proposal.approver || '';
             document.getElementById('editApprovalDate').value = formatDateToDDMMYYYY(proposal.approval_date) || '';
-            document.getElementById('editCompleted').value = proposal.completed || '';
+            document.getElementById('editCompleted').value = (proposal.approved_amount != null && proposal.approved_amount !== '' &&
+                                                            proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
+                                                            proposal.payment_date && proposal.payment_date.trim() !== '' &&
+                                                            proposal.approver && proposal.approver.trim() !== '' &&
+                                                            proposal.approval_date && proposal.approval_date.trim() !== '') ? 'O' : 'X';
             document.getElementById('editNotes').value = proposal.notes || '';
 
             const isAccountant = currentUser.role === 'accountant';
             const isCompleted = proposal.completed === 'Yes';
-            const showRestrictedFields = isAccountant ? 
-                (proposal.approved_amount != null && proposal.approved_amount !== '' &&
-                 proposal.transfer_code && proposal.transfer_code.trim() !== '' &&
-                 proposal.payment_date && proposal.payment_date.trim() !== '' &&
-                 proposal.approver && proposal.approver.trim() !== '' &&
-                 proposal.approval_date && proposal.approval_date.trim() !== '') :
-                isCompleted;
 
-            if (!showRestrictedFields) {
-                document.getElementById('editApprovedAmount').value = '';
-                document.getElementById('editTransferCode').value = '';
-                document.getElementById('editPaymentDate').value = '';
-                document.getElementById('editStatus').value = '';
-                document.getElementById('editApprover').value = '';
-                document.getElementById('editApprovalDate').value = '';
-                document.getElementById('editCompleted').value = '';
-                document.getElementById('editNotes').value = '';
-                document.getElementById('editApprovedAmount').setAttribute('readonly', 'readonly');
-                document.getElementById('editTransferCode').setAttribute('readonly', 'readonly');
-                document.getElementById('editPaymentDate').setAttribute('readonly', 'readonly');
-                document.getElementById('editStatus').setAttribute('readonly', 'readonly');
-                document.getElementById('editApprover').setAttribute('readonly', 'readonly');
-                document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
-                document.getElementById('editCompleted').setAttribute('readonly', 'readonly');
-                document.getElementById('editNotes').setAttribute('readonly', 'readonly');
-            } else {
+            // Tài khoản kế toán luôn có thể chỉnh sửa các trường nhạy cảm
+            if (isAccountant) {
                 document.getElementById('editApprovedAmount').removeAttribute('readonly');
                 document.getElementById('editTransferCode').removeAttribute('readonly');
                 document.getElementById('editPaymentDate').removeAttribute('readonly');
@@ -74,9 +55,8 @@ function openEditModal(proposalId) {
                 document.getElementById('editApprovalDate').removeAttribute('readonly');
                 document.getElementById('editCompleted').removeAttribute('readonly');
                 document.getElementById('editNotes').removeAttribute('readonly');
-            }
 
-            if (isAccountant) {
+                // Các trường không nhạy cảm bị khóa
                 document.getElementById('editProposer').setAttribute('readonly', 'readonly');
                 document.getElementById('editRoom').setAttribute('readonly', 'readonly');
                 document.getElementById('editBranch').setAttribute('readonly', 'readonly');
@@ -88,6 +68,36 @@ function openEditModal(proposalId) {
                 document.getElementById('editSupplier').setAttribute('readonly', 'readonly');
                 document.getElementById('editEstimatedCost').setAttribute('readonly', 'readonly');
             } else {
+                // Người dùng không phải kế toán
+                const showRestrictedFields = isCompleted;
+                if (!showRestrictedFields) {
+                    document.getElementById('editApprovedAmount').value = '';
+                    document.getElementById('editTransferCode').value = '';
+                    document.getElementById('editPaymentDate').value = '';
+                    document.getElementById('editStatus').value = '';
+                    document.getElementById('editApprover').value = '';
+                    document.getElementById('editApprovalDate').value = '';
+                    document.getElementById('editCompleted').value = '';
+                    document.getElementById('editNotes').value = '';
+                    document.getElementById('editApprovedAmount').setAttribute('readonly', 'readonly');
+                    document.getElementById('editTransferCode').setAttribute('readonly', 'readonly');
+                    document.getElementById('editPaymentDate').setAttribute('readonly', 'readonly');
+                    document.getElementById('editStatus').setAttribute('readonly', 'readonly');
+                    document.getElementById('editApprover').setAttribute('readonly', 'readonly');
+                    document.getElementById('editApprovalDate').setAttribute('readonly', 'readonly');
+                    document.getElementById('editCompleted').setAttribute('readonly', 'readonly');
+                    document.getElementById('editNotes').setAttribute('readonly', 'readonly');
+                } else {
+                    document.getElementById('editApprovedAmount').removeAttribute('readonly');
+                    document.getElementById('editTransferCode').removeAttribute('readonly');
+                    document.getElementById('editPaymentDate').removeAttribute('readonly');
+                    document.getElementById('editStatus').removeAttribute('readonly');
+                    document.getElementById('editApprover').removeAttribute('readonly');
+                    document.getElementById('editApprovalDate').removeAttribute('readonly');
+                    document.getElementById('editCompleted').removeAttribute('readonly');
+                    document.getElementById('editNotes').removeAttribute('readonly');
+                }
+
                 document.getElementById('editProposer').removeAttribute('readonly');
                 document.getElementById('editRoom').removeAttribute('readonly');
                 document.getElementById('editBranch').setAttribute('readonly', 'readonly');

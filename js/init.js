@@ -13,9 +13,7 @@ function initializeApp() {
     const buttons = document.querySelectorAll('[data-role]');
     buttons.forEach(button => {
         const buttonRole = button.getAttribute('data-role');
-        if (buttonRole === 'non-accountant' && role === 'accountant') {
-            button.style.display = 'none';
-        } else if (buttonRole === 'accountant' && role !== 'accountant') {
+        if (buttonRole === 'accountant' && role !== 'accountant') {
             button.style.display = 'none';
         } else if (buttonRole === 'all') {
             button.style.display = 'inline-block';
