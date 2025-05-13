@@ -10,8 +10,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'e0e55e5f584ef6555aa9bb957a4b75fb0d674e0693c54da243ee8dcbefff7258'
 logging.basicConfig(level=logging.INFO)
 
-# Cấu hình CORS
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8000", "https://btbinh2710.github.io"]}})
+# Cấu hình CORS chi tiết
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:8000", "https://btbinh2710.github.io", "https://btbinh2710.github.io/de-xuat", "null"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 def get_db_connection():
     try:
@@ -98,8 +104,16 @@ def init_db():
         app.logger.error(f"Lỗi khởi tạo cơ sở dữ liệu: {str(e)}")
         return False
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        # Xử lý yêu cầu preflight
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
     try:
         data = request.get_json()
         if not data or 'username' not in data or 'password' not in data:
@@ -138,12 +152,14 @@ def login():
             }, app.config['SECRET_KEY'], algorithm="HS256")
             conn.close()
             app.logger.info(f"Đăng nhập thành công: {username}")
-            return jsonify({
+            response = jsonify({
                 'token': token,
                 'username': user['username'],
                 'branch': user['branch'],
                 'role': user['role']
             })
+            response.headers.add('Access-Control-Allow-Origin', 'https://btbinh2710.github.io')
+            return response
         else:
             conn.close()
             app.logger.warning(f"Mật khẩu không khớp: {username}")
@@ -152,8 +168,15 @@ def login():
         app.logger.error(f"Lỗi đăng nhập: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
-@app.route('/api/proposals', methods=['GET'])
+@app.route('/api/proposals', methods=['GET', 'OPTIONS'])
 def get_proposals():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
     try:
         token = request.headers.get('Authorization')
         if not token or not token.startswith('Bearer '):
@@ -176,13 +199,22 @@ def get_proposals():
         proposals = conn.execute('SELECT * FROM proposals').fetchall()
         conn.close()
         app.logger.info("Lấy danh sách đề xuất thành công")
-        return jsonify([dict(row) for row in proposals])
+        response = jsonify([dict(row) for row in proposals])
+        response.headers.add('Access-Control-Allow-Origin', 'https://btbinh2710.github.io')
+        return response
     except Exception as e:
         app.logger.error(f"Lỗi khi lấy đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
-@app.route('/api/proposals', methods=['POST'])
+@app.route('/api/proposals', methods=['POST', 'OPTIONS'])
 def create_proposal():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
     try:
         token = request.headers.get('Authorization')
         if not token or not token.startswith('Bearer '):
@@ -227,7 +259,9 @@ def create_proposal():
             conn.commit()
             conn.close()
             app.logger.info(f"Tạo đề xuất thành công: {data['code']}")
-            return jsonify({'message': 'Tạo đề xuất thành công'}), 201
+            response = jsonify({'message': 'Tạo đề xuất thành công'})
+            response.headers.add('Access-Control-Allow-Origin', 'https://btbinh2710.github.io')
+            return response, 201
         except sqlite3.IntegrityError:
             conn.close()
             app.logger.warning(f"Mã đề xuất đã tồn tại: {data['code']}")
@@ -236,8 +270,15 @@ def create_proposal():
         app.logger.error(f"Lỗi khi tạo đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
-@app.route('/api/proposals/<int:id>', methods=['PUT'])
+@app.route('/api/proposals/<int:id>', methods=['PUT', 'OPTIONS'])
 def update_proposal(id):
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
     try:
         token = request.headers.get('Authorization')
         if not token or not token.startswith('Bearer '):
@@ -290,13 +331,22 @@ def update_proposal(id):
         conn.commit()
         conn.close()
         app.logger.info(f"Cập nhật đề xuất thành công: ID {id}")
-        return jsonify({'message': 'Cập nhật đề xuất thành công'})
+        response = jsonify({'message': 'Cập nhật đề xuất thành công'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://btbinh2710.github.io')
+        return response
     except Exception as e:
         app.logger.error(f"Lỗi khi cập nhật đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
 
-@app.route('/api/proposals/<int:id>', methods=['DELETE'])
+@app.route('/api/proposals/<int:id>', methods=['DELETE', 'OPTIONS'])
 def delete_proposal(id):
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
     try:
         token = request.headers.get('Authorization')
         if not token or not token.startswith('Bearer '):
@@ -328,7 +378,9 @@ def delete_proposal(id):
         conn.commit()
         conn.close()
         app.logger.info(f"Xóa đề xuất thành công: ID {id}")
-        return jsonify({'message': 'Xóa đề xuất thành công'})
+        response = jsonify({'message': 'Xóa đề xuất thành công'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://btbinh2710.github.io')
+        return response
     except Exception as e:
         app.logger.error(f"Lỗi khi xóa đề xuất: {str(e)}")
         return jsonify({'message': 'Lỗi server nội bộ'}), 500
