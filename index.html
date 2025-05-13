@@ -61,13 +61,15 @@
                 <h2>THÔNG TIN ĐĂNG NHẬP</h2>
                 <form id="loginForm">
                     <div class="form-sub-w3">
-                        <input type="text" id="username" name="Username" placeholder="Tên đăng nhập" required />
+                        <label for="username" class="form-label">Tên đăng nhập</label>
+                        <input type="text" id="username" name="username" placeholder="Tên đăng nhập" autocomplete="username" required />
                         <div class="icon-w3">
                             <i class="fa fa-user" aria-hidden="true"></i>
                         </div>
                     </div>
                     <div class="form-sub-w3">
-                        <input type="password" id="password" name="Password" placeholder="Mật khẩu" required />
+                        <label for="password" class="form-label">Mật khẩu</label>
+                        <input type="password" id="password" name="password" placeholder="Mật khẩu" autocomplete="current-password" required />
                         <div class="icon-w3">
                             <i class="fa fa-unlock-alt" aria-hidden="true"></i>
                         </div>
@@ -209,92 +211,92 @@
                         <input type="hidden" id="editProposalId">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Người đề nghị</label>
-                                <input type="text" class="form-control" id="editProposer" required>
+                                <label for="editProposer" class="form-label">Người đề nghị</label>
+                                <input type="text" class="form-control" id="editProposer" name="proposer" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Phòng ban</label>
-                                <input type="text" class="form-control" id="editRoom" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Chi nhánh</label>
-                                <input type="text" class="form-control" id="editBranch" readonly>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bộ phận</label>
-                                <input type="text" class="form-control" id="editDepartment" required>
+                                <label for="editRoom" class="form-label">Phòng ban</label>
+                                <input type="text" class="form-control" id="editRoom" name="room" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngày tháng</label>
-                                <input type="text" class="form-control" id="editDate" placeholder="DD/MM/YYYY" required>
+                                <label for="editBranch" class="form-label">Chi nhánh</label>
+                                <input type="text" class="form-control" id="editBranch" name="branch" readonly>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Mã số đề xuất</label>
-                                <input type="text" class="form-control" id="editCode" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Nội dung</label>
-                                <input type="text" class="form-control" id="editContent" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mục đích</label>
-                                <input type="text" class="form-control" id="editPurpose">
+                                <label for="editDepartment" class="form-label">Bộ phận</label>
+                                <input type="text" class="form-control" id="editDepartment" name="department" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Nhà cung cấp</label>
-                                <input type="text" class="form-control" id="editSupplier" required>
+                                <label for="editDate" class="form-label">Ngày tháng</label>
+                                <input type="text" class="form-control" id="editDate" name="date" placeholder="DD/MM/YYYY" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Dự tính ngân sách</label>
-                                <input type="number" class="form-control" id="editEstimatedCost" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Số tiền được duyệt</label>
-                                <input type="number" class="form-control" id="editApprovedAmount">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mã chuyển khoản</label>
-                                <input type="text" class="form-control" id="editTransferCode">
+                                <label for="editCode" class="form-label">Mã số đề xuất</label>
+                                <input type="text" class="form-control" id="editCode" name="code" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngày thanh toán</label>
-                                <input type="text" class="form-control" id="editPaymentDate" placeholder="DD/MM/YYYY">
+                                <label for="editContent" class="form-label">Nội dung</label>
+                                <input type="text" class="form-control" id="editContent" name="content" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Trạng thái</label>
-                                <input type="text" class="form-control" id="editStatus" readonly>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Người duyệt</label>
-                                <input type="text" class="form-control" id="editApprover">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngày duyệt</label>
-                                <input type="text" class="form-control" id="editApprovalDate" placeholder="DD/MM/YYYY">
+                                <label for="editPurpose" class="form-label">Mục đích</label>
+                                <input type="text" class="form-control" id="editPurpose" name="purpose">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Hoàn thành</label>
-                                <input type="text" class="form-control" id="editCompleted">
+                                <label for="editSupplier" class="form-label">Nhà cung cấp</label>
+                                <input type="text" class="form-control" id="editSupplier" name="supplier" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Ghi chú</label>
-                                <input type="text" class="form-control" id="editNotes">
+                                <label for="editEstimatedCost" class="form-label">Dự tính ngân sách</label>
+                                <input type="number" class="form-control" id="editEstimatedCost" name="estimated_cost" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editApprovedAmount" class="form-label">Số tiền được duyệt</label>
+                                <input type="number" class="form-control" id="editApprovedAmount" name="approved_amount">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editTransferCode" class="form-label">Mã chuyển khoản</label>
+                                <input type="text" class="form-control" id="editTransferCode" name="transfer_code">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editPaymentDate" class="form-label">Ngày thanh toán</label>
+                                <input type="text" class="form-control" id="editPaymentDate" name="payment_date" placeholder="DD/MM/YYYY">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editStatus" class="form-label">Trạng thái</label>
+                                <input type="text" class="form-control" id="editStatus" name="status" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editApprover" class="form-label">Người duyệt</label>
+                                <input type="text" class="form-control" id="editApprover" name="approver">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editApprovalDate" class="form-label">Ngày duyệt</label>
+                                <input type="text" class="form-control" id="editApprovalDate" name="approval_date" placeholder="DD/MM/YYYY">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editCompleted" class="form-label">Hoàn thành</label>
+                                <input type="text" class="form-control" id="editCompleted" name="completed">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editNotes" class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" id="editNotes" name="notes">
                             </div>
                         </div>
                     </form>

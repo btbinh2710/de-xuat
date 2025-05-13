@@ -7,7 +7,7 @@ import jwt
 import logging
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'  # Thay bằng khóa bí mật mạnh
+app.config['SECRET_KEY'] = 'e0e55e5f584ef6555aa9bb957a4b75fb0d674e0693c54da243ee8dcbefff7258'
 logging.basicConfig(level=logging.INFO)
 
 # Cấu hình CORS
@@ -75,6 +75,17 @@ def init_db():
             c.execute('INSERT OR IGNORE INTO users (username, password, branch, role) VALUES (?, ?, ?, ?)',
                      (username, hashed.decode('utf-8'), branch, role))
 
+        # Thêm dữ liệu đề xuất mẫu
+        proposals = [
+            ('Nguyễn Văn A', 'Phòng Kinh Doanh', 'XDV_ThaoDien', 'Bộ phận Bán hàng', '01/05/2025', 'DX001', 'Mua máy in', 'Hỗ trợ in ấn tài liệu', 'Công ty ABC', 5000000, 5000000, 'CK001', '02/05/2025', 'Đã xong', 'Trần Văn B', '02/05/2025', 'Yes', 'Đã thanh toán'),
+            ('Trần Thị B', 'Phòng Hành Chính', 'XDV_ThaoDien', 'Bộ phận Nhân sự', '03/05/2025', 'DX002', 'Mua bàn ghế', 'Nâng cấp văn phòng', 'Công ty XYZ', 10000000, null, null, null, 'Đang xử lý', null, null, 'No', null),
+        ]
+        for proposal in proposals:
+            c.execute('''INSERT OR IGNORE INTO proposals (proposer, room, branch, department, date, code, content, purpose, 
+                        supplier, estimated_cost, approved_amount, transfer_code, payment_date, status, approver, 
+                        approval_date, completed, notes) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', proposal)
+
         conn.commit()
         conn.close()
         app.logger.info("Khởi tạo cơ sở dữ liệu thành công")
@@ -111,9 +122,12 @@ def login():
         app.logger.info(f"User data: {dict(user) if user else None}")
         if not user:
             conn.close()
-            app.logger.warning(f"Thông tin đăng nhập không hợp lệ: {username}")
+            app.logger.warning(f"Không tìm thấy người dùng: {username}")
             return jsonify({'message': 'Thông tin đăng nhập không hợp lệ!'}), 401
+        app.logger.info(f"Password provided: {password}")
+        app.logger.info(f"Stored hashed password: {user['password']}")
         if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+            app.logger.info("Mật khẩu khớp")
             token = jwt.encode({
                 'username': username,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
@@ -128,7 +142,7 @@ def login():
             })
         else:
             conn.close()
-            app.logger.warning(f"Thông tin đăng nhập không hợp lệ: {username}")
+            app.logger.warning(f"Mật khẩu không khớp: {username}")
             return jsonify({'message': 'Thông tin đăng nhập không hợp lệ!'}), 401
     except Exception as e:
         app.logger.error(f"Lỗi đăng nhập: {str(e)}")
